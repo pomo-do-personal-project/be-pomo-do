@@ -55,3 +55,16 @@ CodeCoverage/
 *.VisualState.xml
 TestResult.xml
 nunit-*.xml
+
+# Visual Studio / IDE
+.vs/
+
+# Agents & AI configuration
+.agents/
+.agent/
+skills-lock.json
+
+# Ignore all markdown files except README.md
+*.md
+!README.md
+!readme.md
