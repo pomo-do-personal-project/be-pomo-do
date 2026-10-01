@@ -1,4 +1,5 @@
 using be_pomo_do.Core.ValueObjects;
+using TaskStatus = be_pomo_do.Core.ValueObjects.TaskStatus;
 
 namespace be_pomo_do.Core.Entities;
 

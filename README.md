@@ -1,28 +1,28 @@
 # Pomo-Do Backend API
 
-RESTful API backend cho ứng dụng **Pomo-Do** (kết hợp phương pháp Pomodoro và Quản lý công việc To-Do), được xây dựng trên nền tảng **ASP.NET Core (.NET 10)**.
+RESTful API backend cho ứng dụng **Pomo-Do** (kết hợp phương pháp Pomodoro và Quản lý công việc To-Do), được xây dựng trên nền tảng **ASP.NET Core (.NET 10)** và cơ sở dữ liệu **Supabase PostgreSQL**.
 
 ---
 
 ## 🚀 Tính năng cốt lõi (Core Features)
 
-- **Authentication & User Management**: Xác thực JWT, đăng ký, đăng nhập, quản lý thông tin người dùng.
-- **Task Management**: CRUD danh sách công việc, phân loại thẻ (tag), ưu tiên (priority), trạng thái hoàn thành.
-- **Pomodoro Session**: Theo dõi phiên làm việc, thời gian tập trung, thời gian nghỉ ngơi và liên kết với Task.
-- **Analytics & Statistics**: Báo cáo tổng kết thời gian tập trung theo ngày, tuần, tháng và hiệu suất hoàn thành task.
-- **Settings**: Cấu hình thời gian Pomodoro mặc định (25/5/15 mins), âm thanh thông báo.
+- **Authentication & User Management**: Xác thực JWT, đăng ký, đăng nhập (Local, Google, Github OAuth).
+- **Task & Subtask Management**: Quản lý công việc và danh sách việc phụ (subtasks), ma trận ưu tiên Eisenhower, nhãn phân loại (tags).
+- **Focus Sessions**: Đếm giờ tập trung (Pomodoro, Stopwatch), ghi nhận thời gian làm lố (overtime).
+- **Gamification & Settings**: Theo dõi chuỗi ngày hoạt động liên tục (daily streaks) và cấu hình cá nhân hóa (user settings).
 
 ---
 
 ## 🛠 Công nghệ sử dụng (Tech Stack)
 
 - **Platform**: [.NET 10 Web API](https://dotnet.microsoft.com/)
-- **Architecture**: Clean Architecture / Layered Architecture
-- **API Documentation**: Microsoft OpenAPI (`Microsoft.AspNetCore.OpenApi`) / Swagger
-- **Database**: PostgreSQL / SQL Server (hỗ trợ Entity Framework Core)
-- **Authentication**: JWT (JSON Web Token)
+- **Architecture**: Clean Architecture / Domain-Driven Design (DDD)
+- **Database**: PostgreSQL on [Supabase](https://supabase.com/)
+- **ORM**: Entity Framework Core 10 (`Npgsql.EntityFrameworkCore.PostgreSQL`)
+- **API Documentation**: Microsoft OpenAPI (`Microsoft.AspNetCore.OpenApi`)
 
 ---
+
 ## ⚡ Hướng dẫn cài đặt & Khởi chạy (Getting Started)
 
 ### Yêu cầu tiên quyết:
@@ -30,14 +30,24 @@ RESTful API backend cho ứng dụng **Pomo-Do** (kết hợp phương pháp Pom
 
 ### Chạy dự án:
 ```powershell
-# Di chuyển vào thư mục backend
+# 1. Di chuyển vào thư mục backend
 cd be-pomo-do
 
-# Khôi phục dependencies
+# 2. Khôi phục dependencies
 dotnet restore
 
-# Chạy ứng dụng ở môi trường Development
+# 3. Tạo migration và cập nhật schema lên Supabase (khi cần)
+dotnet ef migrations add InitialCreate --output-dir Infrastructure/Data/Migrations
+dotnet ef database update
+
+# 4. Chạy ứng dụng ở môi trường Development
 dotnet run
+```
+
+Ứng dụng sẽ khởi chạy tại:
+- HTTP: `http://localhost:5267`
+- OpenAPI Spec: `http://localhost:5267/openapi/v1.json`
+
 ---
 
 ## 🔗 Liên kết liên quan
