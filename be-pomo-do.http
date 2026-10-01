@@ -1,0 +1,6 @@
+@be_pomo_do_HostAddress = http://localhost:5267
+
+GET {{be_pomo_do_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###
