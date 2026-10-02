@@ -13,10 +13,6 @@ public class JwtTokenGenerator : IJwtTokenGenerator
 {
     private readonly JwtOptions _jwtOptions;
 
-    /// <summary>
-    /// Initializes a new instance of the <see cref="JwtTokenGenerator"/> class.
-    /// </summary>
-    /// <param name="jwtOptions">The JWT configuration options.</param>
     public JwtTokenGenerator(IOptions<JwtOptions> jwtOptions)
     {
         _jwtOptions = jwtOptions?.Value ?? throw new ArgumentNullException(nameof(jwtOptions));

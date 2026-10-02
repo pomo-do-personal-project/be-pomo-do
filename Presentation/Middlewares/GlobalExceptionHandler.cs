@@ -4,21 +4,12 @@ using Microsoft.AspNetCore.Mvc;
 
 namespace be_pomo_do.Presentation.Middlewares;
 
-/// <summary>
-/// Handles exceptions globally using the modern .NET IExceptionHandler pattern.
-/// </summary>
-/// <param name="problemDetailsService">The problem details service.</param>
-/// <param name="logger">The logger instance.</param>
+// Handles exceptions globally using the modern ASP.NET Core IExceptionHandler pattern
 public class GlobalExceptionHandler : IExceptionHandler
 {
     private readonly IProblemDetailsService _problemDetailsService;
     private readonly ILogger<GlobalExceptionHandler> _logger;
 
-    /// <summary>
-    /// Initializes a new instance of the <see cref="GlobalExceptionHandler"/> class.
-    /// </summary>
-    /// <param name="problemDetailsService">The problem details service.</param>
-    /// <param name="logger">The logger instance.</param>
     public GlobalExceptionHandler(
         IProblemDetailsService problemDetailsService,
         ILogger<GlobalExceptionHandler> logger)

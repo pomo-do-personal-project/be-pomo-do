@@ -1,8 +1,6 @@
 namespace be_pomo_do.Core.ValueObjects;
 
-/// <summary>
-/// Eisenhower Matrix (Matrix 4)
-/// </summary>
+// Eisenhower Matrix 4 Priority levels
 public enum Priority
 {
     ImportantUrgent = 1,      // Do first

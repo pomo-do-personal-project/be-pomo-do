@@ -1,7 +1,9 @@
 namespace be_pomo_do.Presentation;
 
+// Dependency Injection registration for Presentation layer
 public static class DependencyInjection
 {
+    // Registers controllers, exception handling, CORS, OpenAPI, and JWT Bearer with cookie support
     public static IServiceCollection AddPresentation(this IServiceCollection services, IConfiguration configuration)
     {
         // 1. Đăng ký Controller Pipeline
@@ -50,6 +52,19 @@ public static class DependencyInjection
                     System.Text.Encoding.UTF8.GetBytes(jwtSecret)
                 ),
                 ClockSkew = TimeSpan.Zero
+            };
+
+            // Hỗ trợ tự động trích xuất token từ HttpOnly Cookie (BFF architecture) hoặc từ Authorization Bearer Header
+            options.Events = new Microsoft.AspNetCore.Authentication.JwtBearer.JwtBearerEvents
+            {
+                OnMessageReceived = context =>
+                {
+                    if (context.Request.Cookies.TryGetValue("access_token", out var cookieToken) && !string.IsNullOrEmpty(cookieToken))
+                    {
+                        context.Token = cookieToken;
+                    }
+                    return Task.CompletedTask;
+                }
             };
         });
 

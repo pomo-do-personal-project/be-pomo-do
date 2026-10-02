@@ -9,10 +9,6 @@ public class UserRepository : IUserRepository
 {
     private readonly AppDbContext _context;
 
-    /// <summary>
-    /// Initializes a new instance of the <see cref="UserRepository"/> class.
-    /// </summary>
-    /// <param name="context">The database context instance.</param>
     public UserRepository(AppDbContext context)
     {
         _context = context ?? throw new ArgumentNullException(nameof(context));

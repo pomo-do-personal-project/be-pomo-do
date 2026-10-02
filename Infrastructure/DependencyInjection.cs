@@ -3,8 +3,10 @@ using Microsoft.EntityFrameworkCore;
 
 namespace be_pomo_do.Infrastructure;
 
+// Dependency Injection registration for Infrastructure layer
 public static class DependencyInjection
 {
+    // Registers database context, JWT options, security services, and repositories
     public static IServiceCollection AddInfrastructure(this IServiceCollection services, IConfiguration configuration)
     {
         // 1. Cấu hình EF Core DbContext với PostgreSQL Supabase

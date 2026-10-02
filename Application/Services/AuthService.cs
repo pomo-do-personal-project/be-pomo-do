@@ -8,13 +8,7 @@ using Microsoft.Extensions.Options;
 
 namespace be_pomo_do.Application.Services;
 
-/// <summary>
-/// Implements user registration and authentication workflows.
-/// </summary>
-/// <param name="userRepository">The user repository instance.</param>
-/// <param name="passwordHasher">The password hashing service.</param>
-/// <param name="jwtTokenGenerator">The JWT and refresh token generator.</param>
-/// <param name="jwtOptions">The JWT configuration options.</param>
+// Handles user registration, authentication, and token issuance workflows
 public class AuthService : IAuthService
 {
     private readonly IUserRepository _userRepository;
@@ -22,13 +16,6 @@ public class AuthService : IAuthService
     private readonly IJwtTokenGenerator _jwtTokenGenerator;
     private readonly JwtOptions _jwtOptions;
 
-    /// <summary>
-    /// Initializes a new instance of the <see cref="AuthService"/> class.
-    /// </summary>
-    /// <param name="userRepository">The user repository instance.</param>
-    /// <param name="passwordHasher">The password hashing service.</param>
-    /// <param name="jwtTokenGenerator">The JWT and refresh token generator.</param>
-    /// <param name="jwtOptions">The JWT configuration options.</param>
     public AuthService(
         IUserRepository userRepository,
         IPasswordHasher passwordHasher,
@@ -41,7 +28,7 @@ public class AuthService : IAuthService
         _jwtOptions = jwtOptions?.Value ?? throw new ArgumentNullException(nameof(jwtOptions));
     }
 
-    /// <inheritdoc/>
+    // Registers a new user account with default settings, streak, and token pair
     public async Task<AuthResponse> RegisterAsync(RegisterRequest request, CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(request);
@@ -123,7 +110,7 @@ public class AuthService : IAuthService
         );
     }
 
-    /// <inheritdoc/>
+    // Authenticates user credentials and issues a new access/refresh token pair
     public async Task<AuthResponse> LoginAsync(LoginRequest request, CancellationToken cancellationToken = default)
     {
         // 1. Tìm người dùng theo Email

@@ -2,12 +2,7 @@ using System.ComponentModel.DataAnnotations;
 
 namespace be_pomo_do.Application.DTOs.Auth;
 
-/// <summary>
-/// Represents the payload required to register a new user.
-/// </summary>
-/// <param name="Email">The unique email address for the user.</param>
-/// <param name="Password">The plain-text password for the user, minimum 8 characters.</param>
-/// <param name="DisplayName">The user's display name, maximum 100 characters.</param>
+// Payload required to register a new user
 public record RegisterRequest(
     [Required(ErrorMessage = "Email không được để trống")]
     [EmailAddress(ErrorMessage = "Định dạng email không hợp lệ")]
