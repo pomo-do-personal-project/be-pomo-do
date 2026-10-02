@@ -1,32 +1,18 @@
-using be_pomo_do.Infrastructure.Data;
-using Microsoft.EntityFrameworkCore;
+using be_pomo_do.Application;
+using be_pomo_do.Infrastructure;
+using be_pomo_do.Presentation;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// Add services to the container.
-builder.Services.AddControllers();
-builder.Services.AddOpenApi();
-
-// Register AppDbContext with Supabase PostgreSQL
-builder.Services.AddDbContext<AppDbContext>(options =>
-    options.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection"))
-);
-
-// CORS for Next.js frontend
-builder.Services.AddCors(options =>
-{
-    options.AddPolicy("AllowFrontend", policy =>
-    {
-        policy.WithOrigins("http://localhost:3000")
-              .AllowAnyHeader()
-              .AllowAnyMethod()
-              .AllowCredentials();
-    });
-});
+// 1. Composition Root: Đăng ký dịch vụ theo từng tầng bằng Extension Methods
+builder.Services
+    .AddApplication()
+    .AddInfrastructure(builder.Configuration)
+    .AddPresentation(builder.Configuration);
 
 var app = builder.Build();
 
-// Configure the HTTP request pipeline.
+// 2. HTTP Request Pipeline
 if (app.Environment.IsDevelopment())
 {
     app.MapOpenApi();
@@ -35,6 +21,8 @@ if (app.Environment.IsDevelopment())
 app.UseHttpsRedirection();
 app.UseCors("AllowFrontend");
 app.UseAuthorization();
+
+// 3. Map toàn bộ Controllers trong hệ thống
 app.MapControllers();
 
 app.Run();
