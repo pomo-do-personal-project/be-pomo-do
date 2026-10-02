@@ -1,6 +1,6 @@
 namespace be_pomo_do.Application.DTOs.Auth;
 
-// Data transfer object representing user profile information
+/// <summary>Represents the user profile data transfer object.</summary>
 public record UserDto(
     Guid Id,
     string Email,
@@ -8,3 +8,4 @@ public record UserDto(
     string? AvatarUrl,
     DateTime CreatedAt
 );
+

@@ -1,9 +1,10 @@
 namespace be_pomo_do.Application.DTOs.Auth;
 
-// Data transfer object returned upon successful authentication
+/// <summary>Represents the data transfer object returned upon successful authentication or token rotation.</summary>
 public record AuthResponse(
     UserDto User,
     string AccessToken,
     string RefreshToken,
     int ExpiresInSeconds
 );
+

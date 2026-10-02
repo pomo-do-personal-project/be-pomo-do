@@ -2,24 +2,27 @@ using be_pomo_do.Core.Entities;
 
 namespace be_pomo_do.Application.Common.Interfaces;
 
-// Repository contract for user persistence and retrieval
+/// <summary>Defines the repository contract for user persistence, retrieval, and refresh token lifecycle operations.</summary>
 public interface IUserRepository
 {
-    // Finds a user by email address
+    /// <summary>Finds a user entity by their unique email address.</summary>
     Task<User?> GetByEmailAsync(string email, CancellationToken cancellationToken = default);
 
-    // Finds a user by unique identifier
+    /// <summary>Finds a user entity by their unique identifier.</summary>
     Task<User?> GetByIdAsync(Guid id, CancellationToken cancellationToken = default);
 
-    // Checks whether an email address is already registered
+    /// <summary>Determines whether an account with the specified email address already exists.</summary>
     Task<bool> ExistsByEmailAsync(string email, CancellationToken cancellationToken = default);
 
-    // Adds a new user entity to the database
+    /// <summary>Adds a new user entity to the persistence store.</summary>
     Task AddAsync(User user, CancellationToken cancellationToken = default);
 
-    // Adds a new refresh token entity directly to the database
+    /// <summary>Adds a new refresh token entity associated with a user to the persistence store.</summary>
     Task AddRefreshTokenAsync(RefreshToken refreshToken, CancellationToken cancellationToken = default);
 
-    // Saves all pending changes to the database
+    /// <summary>Retrieves a refresh token record along with its associated user entity.</summary>
+    Task<RefreshToken?> GetRefreshTokenWithUserAsync(string token, CancellationToken cancellationToken = default);
+
+    /// <summary>Saves all pending entity state changes to the database.</summary>
     Task SaveChangesAsync(CancellationToken cancellationToken = default);
 }

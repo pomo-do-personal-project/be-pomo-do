@@ -8,27 +8,20 @@ using Microsoft.Extensions.Options;
 
 namespace be_pomo_do.Application.Services;
 
-// Handles user registration, authentication, and token issuance workflows
-public class AuthService : IAuthService
+/// <summary>Provides application business workflows for user authentication, registration, token rotation, and session management.</summary>
+public class AuthService(
+    IUserRepository userRepository,
+    IPasswordHasher passwordHasher,
+    IJwtTokenGenerator jwtTokenGenerator,
+    IOptions<JwtOptions> jwtOptions) : IAuthService
 {
-    private readonly IUserRepository _userRepository;
-    private readonly IPasswordHasher _passwordHasher;
-    private readonly IJwtTokenGenerator _jwtTokenGenerator;
-    private readonly JwtOptions _jwtOptions;
+    private readonly IUserRepository _userRepository = userRepository ?? throw new ArgumentNullException(nameof(userRepository));
+    private readonly IPasswordHasher _passwordHasher = passwordHasher ?? throw new ArgumentNullException(nameof(passwordHasher));
+    private readonly IJwtTokenGenerator _jwtTokenGenerator = jwtTokenGenerator ?? throw new ArgumentNullException(nameof(jwtTokenGenerator));
+    private readonly JwtOptions _jwtOptions = jwtOptions?.Value ?? throw new ArgumentNullException(nameof(jwtOptions));
 
-    public AuthService(
-        IUserRepository userRepository,
-        IPasswordHasher passwordHasher,
-        IJwtTokenGenerator jwtTokenGenerator,
-        IOptions<JwtOptions> jwtOptions)
-    {
-        _userRepository = userRepository ?? throw new ArgumentNullException(nameof(userRepository));
-        _passwordHasher = passwordHasher ?? throw new ArgumentNullException(nameof(passwordHasher));
-        _jwtTokenGenerator = jwtTokenGenerator ?? throw new ArgumentNullException(nameof(jwtTokenGenerator));
-        _jwtOptions = jwtOptions?.Value ?? throw new ArgumentNullException(nameof(jwtOptions));
-    }
 
-    // Registers a new user account with default settings, streak, and token pair
+    /// <inheritdoc/>
     public async Task<AuthResponse> RegisterAsync(RegisterRequest request, CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(request);
@@ -110,7 +103,7 @@ public class AuthService : IAuthService
         );
     }
 
-    // Authenticates user credentials and issues a new access/refresh token pair
+    /// <inheritdoc/>
     public async Task<AuthResponse> LoginAsync(LoginRequest request, CancellationToken cancellationToken = default)
     {
         // 1. Tìm người dùng theo Email
@@ -159,4 +152,110 @@ public class AuthService : IAuthService
             ExpiresInSeconds: _jwtOptions.AccessTokenExpirationMinutes * 60
         );
     }
+
+    /// <inheritdoc/>
+    public async Task<AuthResponse> RefreshTokenAsync(string refreshTokenString, CancellationToken cancellationToken = default)
+    {
+        if (string.IsNullOrWhiteSpace(refreshTokenString))
+        {
+            throw new DomainException("Refresh token không hợp lệ hoặc không tồn tại.");
+        }
+
+        // 1. Tìm refresh token trong CSDL
+        var existingToken = await _userRepository.GetRefreshTokenWithUserAsync(refreshTokenString, cancellationToken);
+        if (existingToken is null)
+        {
+            throw new DomainException("Refresh token không hợp lệ hoặc không tồn tại.");
+        }
+
+        // 2. Kiểm tra token đã bị thu hồi hoặc hết hạn chưa
+        if (existingToken.IsRevoked)
+        {
+            throw new DomainException("Phiên đăng nhập đã bị vô hiệu hóa. Vui lòng đăng nhập lại.");
+        }
+
+        if (existingToken.IsExpired)
+        {
+            throw new DomainException("Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại.");
+        }
+
+        var user = existingToken.User;
+        if (user is null)
+        {
+            throw new DomainException("Tài khoản người dùng không tồn tại.");
+        }
+
+        // 3. Cơ chế xoay vòng Refresh Token (Token Rotation): Hủy token cũ
+        var newRefreshTokenString = _jwtTokenGenerator.GenerateRefreshToken();
+        existingToken.IsRevoked = true;
+        existingToken.ReplacedByToken = newRefreshTokenString;
+
+        // 4. Tạo refresh token mới
+        var newRefreshToken = new RefreshToken
+        {
+            UserId = user.Id,
+            Token = newRefreshTokenString,
+            ExpiresAt = DateTime.UtcNow.AddDays(_jwtOptions.RefreshTokenExpirationDays),
+            CreatedAt = DateTime.UtcNow,
+            IsRevoked = false
+        };
+
+        await _userRepository.AddRefreshTokenAsync(newRefreshToken, cancellationToken);
+
+        // 5. Cấp mới Access Token
+        var newAccessToken = _jwtTokenGenerator.GenerateAccessToken(user);
+
+        await _userRepository.SaveChangesAsync(cancellationToken);
+
+        // 6. Trả về AuthResponse
+        var userDto = new UserDto(
+            user.Id,
+            user.Email,
+            user.DisplayName,
+            user.AvatarUrl,
+            user.CreatedAt
+        );
+
+        return new AuthResponse(
+            User: userDto,
+            AccessToken: newAccessToken,
+            RefreshToken: newRefreshTokenString,
+            ExpiresInSeconds: _jwtOptions.AccessTokenExpirationMinutes * 60
+        );
+    }
+
+    /// <inheritdoc/>
+    public async Task<UserDto> GetMeAsync(Guid userId, CancellationToken cancellationToken = default)
+    {
+        var user = await _userRepository.GetByIdAsync(userId, cancellationToken);
+        if (user is null)
+        {
+            throw new DomainException("Không tìm thấy thông tin tài khoản người dùng.");
+        }
+
+        return new UserDto(
+            user.Id,
+            user.Email,
+            user.DisplayName,
+            user.AvatarUrl,
+            user.CreatedAt
+        );
+    }
+
+    /// <inheritdoc/>
+    public async Task LogoutAsync(string? refreshTokenString, CancellationToken cancellationToken = default)
+    {
+        if (string.IsNullOrWhiteSpace(refreshTokenString))
+        {
+            return;
+        }
+
+        var token = await _userRepository.GetRefreshTokenWithUserAsync(refreshTokenString, cancellationToken);
+        if (token is not null && !token.IsRevoked)
+        {
+            token.IsRevoked = true;
+            await _userRepository.SaveChangesAsync(cancellationToken);
+        }
+    }
 }
+

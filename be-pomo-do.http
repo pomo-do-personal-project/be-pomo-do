@@ -33,3 +33,31 @@ Content-Type: application/json
 }
 
 ###
+
+### 4. Lấy thông tin tài khoản hiện tại (GET /api/auth/me)
+# Lưu ý: Token có thể truyền qua Authorization Header hoặc tự động đọc từ HttpOnly Cookie "access_token"
+GET {{be_pomo_do_HostAddress}}/api/auth/me
+Authorization: Bearer <paste_access_token_here>
+
+###
+
+### 5. Làm mới Access Token (POST /api/auth/refresh-token)
+# Tự động đọc từ Cookie "refresh_token" hoặc truyền JSON body
+POST {{be_pomo_do_HostAddress}}/api/auth/refresh-token
+Content-Type: application/json
+
+{
+  "refreshToken": "<paste_refresh_token_here>"
+}
+
+###
+
+### 6. Đăng xuất (POST /api/auth/logout)
+POST {{be_pomo_do_HostAddress}}/api/auth/logout
+Content-Type: application/json
+
+{
+  "refreshToken": "<paste_refresh_token_here>"
+}
+
+###
