@@ -19,4 +19,5 @@ public class User
     public ICollection<TaskItem> Tasks { get; set; } = [];
     public ICollection<Tag> Tags { get; set; } = [];
     public ICollection<FocusSession> FocusSessions { get; set; } = [];
+    public ICollection<RefreshToken> RefreshTokens { get; set; } = [];
 }

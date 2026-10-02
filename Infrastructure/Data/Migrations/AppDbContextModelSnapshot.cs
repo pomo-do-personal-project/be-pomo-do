@@ -92,6 +92,53 @@ namespace be_pomo_do.Infrastructure.Data.Migrations
                     b.ToTable("focus_sessions", (string)null);
                 });
 
+            modelBuilder.Entity("be_pomo_do.Core.Entities.RefreshToken", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at")
+                        .HasDefaultValueSql("NOW()");
+
+                    b.Property<DateTime>("ExpiresAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("expires_at");
+
+                    b.Property<bool>("IsRevoked")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(false)
+                        .HasColumnName("is_revoked");
+
+                    b.Property<string>("ReplacedByToken")
+                        .HasColumnType("text")
+                        .HasColumnName("replaced_by_token");
+
+                    b.Property<string>("Token")
+                        .IsRequired()
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)")
+                        .HasColumnName("token");
+
+                    b.Property<Guid>("UserId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("user_id");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("Token")
+                        .IsUnique();
+
+                    b.HasIndex("UserId");
+
+                    b.ToTable("refresh_tokens", (string)null);
+                });
+
             modelBuilder.Entity("be_pomo_do.Core.Entities.Subtask", b =>
                 {
                     b.Property<Guid>("Id")
@@ -357,6 +404,17 @@ namespace be_pomo_do.Infrastructure.Data.Migrations
                     b.Navigation("User");
                 });
 
+            modelBuilder.Entity("be_pomo_do.Core.Entities.RefreshToken", b =>
+                {
+                    b.HasOne("be_pomo_do.Core.Entities.User", "User")
+                        .WithMany("RefreshTokens")
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("User");
+                });
+
             modelBuilder.Entity("be_pomo_do.Core.Entities.Subtask", b =>
                 {
                     b.HasOne("be_pomo_do.Core.Entities.TaskItem", "Task")
@@ -437,6 +495,8 @@ namespace be_pomo_do.Infrastructure.Data.Migrations
             modelBuilder.Entity("be_pomo_do.Core.Entities.User", b =>
                 {
                     b.Navigation("FocusSessions");
+
+                    b.Navigation("RefreshTokens");
 
                     b.Navigation("Settings");
 

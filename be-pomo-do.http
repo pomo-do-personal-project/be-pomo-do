@@ -1,6 +1,35 @@
 @be_pomo_do_HostAddress = http://localhost:5267
 
-GET {{be_pomo_do_HostAddress}}/openapi/v1.json
-Accept: application/json
+### 1. Đăng ký tài khoản mới: Nguyễn Văn An (POST /api/auth/register)
+POST {{be_pomo_do_HostAddress}}/api/auth/register
+Content-Type: application/json
+
+{
+  "email": "nguyenvanan@gmail.com",
+  "password": "Password123@",
+  "displayName": "Nguyễn Văn An"
+}
+
+###
+
+### 2. Đăng nhập thành công (POST /api/auth/login)
+POST {{be_pomo_do_HostAddress}}/api/auth/login
+Content-Type: application/json
+
+{
+  "email": "nguyenvanan@gmail.com",
+  "password": "Password123@"
+}
+
+###
+
+### 3. Đăng nhập sai mật khẩu (Test ProblemDetails 400 Bad Request)
+POST {{be_pomo_do_HostAddress}}/api/auth/login
+Content-Type: application/json
+
+{
+  "email": "nguyenvanan@gmail.com",
+  "password": "WrongPassword123@"
+}
 
 ###

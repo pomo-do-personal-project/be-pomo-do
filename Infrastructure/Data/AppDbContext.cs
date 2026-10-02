@@ -13,6 +13,7 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
     public DbSet<Tag> Tags => Set<Tag>();
     public DbSet<TaskTag> TaskTags => Set<TaskTag>();
     public DbSet<FocusSession> FocusSessions => Set<FocusSession>();
+    public DbSet<RefreshToken> RefreshTokens => Set<RefreshToken>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -57,6 +58,11 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
             entity.HasMany(e => e.FocusSessions)
                   .WithOne(f => f.User)
                   .HasForeignKey(f => f.UserId)
+                  .OnDelete(DeleteBehavior.Cascade);
+
+            entity.HasMany(e => e.RefreshTokens)
+                  .WithOne(r => r.User)
+                  .HasForeignKey(r => r.UserId)
                   .OnDelete(DeleteBehavior.Cascade);
         });
 
@@ -165,6 +171,22 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
             entity.Property(e => e.TaskId).HasColumnName("task_id");
             entity.Property(e => e.Mode).HasColumnName("mode").HasConversion<string>();
             entity.Property(e => e.OvertimeSeconds).HasColumnName("overtime_seconds").HasDefaultValue(0);
+        });
+
+        // 9. RefreshTokens
+        modelBuilder.Entity<RefreshToken>(entity =>
+        {
+            entity.ToTable("refresh_tokens");
+            entity.HasKey(e => e.Id);
+            entity.Property(e => e.Id).HasColumnName("id");
+            entity.Property(e => e.UserId).HasColumnName("user_id").IsRequired();
+            entity.Property(e => e.Token).HasColumnName("token").HasMaxLength(500).IsRequired();
+            entity.HasIndex(e => e.Token).IsUnique();
+            entity.HasIndex(e => e.UserId);
+            entity.Property(e => e.ExpiresAt).HasColumnName("expires_at").IsRequired();
+            entity.Property(e => e.CreatedAt).HasColumnName("created_at").HasDefaultValueSql("NOW()");
+            entity.Property(e => e.IsRevoked).HasColumnName("is_revoked").HasDefaultValue(false);
+            entity.Property(e => e.ReplacedByToken).HasColumnName("replaced_by_token");
         });
     }
 }
