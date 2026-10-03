@@ -107,6 +107,13 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
             entity.Property(e => e.EstimatedPomodoros).HasColumnName("estimated_pomodoros").HasDefaultValue(1);
             entity.Property(e => e.EstimatedMinutes).HasColumnName("estimated_minutes").HasDefaultValue(25);
             entity.Property(e => e.DueDate).HasColumnName("due_date");
+            entity.Property(e => e.IsDeleted).HasColumnName("is_deleted").HasDefaultValue(false);
+            entity.Property(e => e.DeletedAt).HasColumnName("deleted_at");
+            entity.Property(e => e.CreatedAt).HasColumnName("created_at").HasDefaultValueSql("NOW()");
+            entity.Property(e => e.UpdatedAt).HasColumnName("updated_at");
+
+            // Soft delete global query filter
+            entity.HasQueryFilter(e => !e.IsDeleted);
 
             entity.HasMany(e => e.Subtasks)
                   .WithOne(s => s.Task)

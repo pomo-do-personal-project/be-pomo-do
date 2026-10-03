@@ -61,3 +61,107 @@ Content-Type: application/json
 }
 
 ###
+
+### ========================================================
+### 📋 TASK & SUBTASK MANAGEMENT ENDPOINTS
+### ========================================================
+
+### 7. Tạo Task mới kèm Initial Subtasks (POST /api/tasks)
+POST {{be_pomo_do_HostAddress}}/api/tasks
+Authorization: Bearer <paste_access_token_here>
+Content-Type: application/json
+
+{
+  "title": "Thiết kế và tối ưu PostgreSQL Supabase Index",
+  "priority": 1,
+  "estimatedPomodoros": 4,
+  "estimatedMinutes": 100,
+  "dueDate": "2026-10-10T17:00:00Z",
+  "initialSubtasks": [
+    "Đánh index cho cột email bảng users",
+    "Thêm index cho user_id bảng tasks",
+    "Chạy EXPLAIN ANALYZE kiểm tra performance"
+  ]
+}
+
+###
+
+### 8. Lấy danh sách Tasks (GET /api/tasks)
+GET {{be_pomo_do_HostAddress}}/api/tasks?sortBy=createdAt&isDescending=true
+Authorization: Bearer <paste_access_token_here>
+
+###
+
+### 9. Lấy danh sách Tasks trong thùng rác Soft Delete (GET /api/tasks?inTrash=true)
+GET {{be_pomo_do_HostAddress}}/api/tasks?inTrash=true
+Authorization: Bearer <paste_access_token_here>
+
+###
+
+### 10. Lấy chi tiết 1 Task (GET /api/tasks/{id})
+GET {{be_pomo_do_HostAddress}}/api/tasks/<paste_task_id_here>
+Authorization: Bearer <paste_access_token_here>
+
+###
+
+### 11. Cập nhật Task (PUT /api/tasks/{id})
+PUT {{be_pomo_do_HostAddress}}/api/tasks/<paste_task_id_here>
+Authorization: Bearer <paste_access_token_here>
+Content-Type: application/json
+
+{
+  "title": "Thiết kế và tối ưu Index PostgreSQL Supabase (Đã cập nhật)",
+  "priority": 1,
+  "status": 2,
+  "estimatedPomodoros": 5,
+  "estimatedMinutes": 125,
+  "dueDate": "2026-10-11T17:00:00Z"
+}
+
+###
+
+### 12. Cập nhật nhanh trạng thái Task: InProgress = 2, Completed = 3 (PATCH /api/tasks/{id}/status)
+PATCH {{be_pomo_do_HostAddress}}/api/tasks/<paste_task_id_here>/status
+Authorization: Bearer <paste_access_token_here>
+Content-Type: application/json
+
+{
+  "status": 2
+}
+
+###
+
+### 13. Soft Delete Task - đưa vào thùng rác (DELETE /api/tasks/{id})
+DELETE {{be_pomo_do_HostAddress}}/api/tasks/<paste_task_id_here>
+Authorization: Bearer <paste_access_token_here>
+
+###
+
+### 14. Khôi phục Task từ thùng rác (POST /api/tasks/{id}/restore)
+POST {{be_pomo_do_HostAddress}}/api/tasks/<paste_task_id_here>/restore
+Authorization: Bearer <paste_access_token_here>
+
+###
+
+### 15. Thêm Subtask mới vào Task (POST /api/tasks/{taskId}/subtasks)
+POST {{be_pomo_do_HostAddress}}/api/tasks/<paste_task_id_here>/subtasks
+Authorization: Bearer <paste_access_token_here>
+Content-Type: application/json
+
+{
+  "title": "Viết unit test kiểm thử logic gán tag",
+  "orderIndex": 3
+}
+
+###
+
+### 16. Toggle trạng thái hoàn thành Subtask (PATCH /api/tasks/{taskId}/subtasks/{subtaskId}/toggle)
+PATCH {{be_pomo_do_HostAddress}}/api/tasks/<paste_task_id_here>/subtasks/<paste_subtask_id_here>/toggle
+Authorization: Bearer <paste_access_token_here>
+
+###
+
+### 17. Xóa Subtask vĩnh viễn (DELETE /api/tasks/{taskId}/subtasks/{subtaskId})
+DELETE {{be_pomo_do_HostAddress}}/api/tasks/<paste_task_id_here>/subtasks/<paste_subtask_id_here>
+Authorization: Bearer <paste_access_token_here>
+
