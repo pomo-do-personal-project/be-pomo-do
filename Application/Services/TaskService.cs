@@ -43,6 +43,7 @@ public class TaskService(ITaskRepository taskRepository) : ITaskService
             EstimatedPomodoros = request.EstimatedPomodoros,
             EstimatedMinutes = request.EstimatedMinutes,
             DueDate = request.DueDate,
+            IsQuickAdd = request.IsQuickAdd,
             CreatedAt = DateTime.UtcNow
         };
 
@@ -98,6 +99,7 @@ public class TaskService(ITaskRepository taskRepository) : ITaskService
         task.EstimatedPomodoros = request.EstimatedPomodoros;
         task.EstimatedMinutes = request.EstimatedMinutes;
         task.DueDate = request.DueDate;
+        task.IsQuickAdd = request.IsQuickAdd;
         task.UpdatedAt = DateTime.UtcNow;
 
         // Update tags
@@ -273,6 +275,7 @@ public class TaskService(ITaskRepository taskRepository) : ITaskService
             EstimatedMinutes = task.EstimatedMinutes,
             CompletedPomodoros = task.FocusSessions.Count(f => f.Mode == FocusSessionMode.Pomo),
             DueDate = task.DueDate,
+            IsQuickAdd = task.IsQuickAdd,
             CreatedAt = task.CreatedAt,
             UpdatedAt = task.UpdatedAt,
             Subtasks = task.Subtasks.Select(MapToSubtaskDto).ToList(),

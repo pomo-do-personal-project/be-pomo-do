@@ -107,6 +107,7 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
             entity.Property(e => e.EstimatedPomodoros).HasColumnName("estimated_pomodoros").HasDefaultValue(1);
             entity.Property(e => e.EstimatedMinutes).HasColumnName("estimated_minutes").HasDefaultValue(25);
             entity.Property(e => e.DueDate).HasColumnName("due_date");
+            entity.Property(e => e.IsQuickAdd).HasColumnName("is_quick_add").HasDefaultValue(false);
             entity.Property(e => e.IsDeleted).HasColumnName("is_deleted").HasDefaultValue(false);
             entity.Property(e => e.DeletedAt).HasColumnName("deleted_at");
             entity.Property(e => e.CreatedAt).HasColumnName("created_at").HasDefaultValueSql("NOW()");
@@ -177,7 +178,13 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
             entity.Property(e => e.UserId).HasColumnName("user_id").IsRequired();
             entity.Property(e => e.TaskId).HasColumnName("task_id");
             entity.Property(e => e.Mode).HasColumnName("mode").HasConversion<string>();
+            entity.Property(e => e.DurationMinutes).HasColumnName("duration_minutes").HasDefaultValue(25);
+            entity.Property(e => e.ActualSeconds).HasColumnName("actual_seconds").HasDefaultValue(0);
             entity.Property(e => e.OvertimeSeconds).HasColumnName("overtime_seconds").HasDefaultValue(0);
+            entity.Property(e => e.IsCompleted).HasColumnName("is_completed").HasDefaultValue(true);
+            entity.Property(e => e.StartedAt).HasColumnName("started_at").HasDefaultValueSql("NOW()");
+            entity.Property(e => e.CompletedAt).HasColumnName("completed_at");
+            entity.Property(e => e.Note).HasColumnName("note").HasMaxLength(500);
         });
 
         // 9. RefreshTokens

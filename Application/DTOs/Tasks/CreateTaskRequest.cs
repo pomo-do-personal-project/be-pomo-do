@@ -25,6 +25,9 @@ public class CreateTaskRequest
     /// <summary>Optional deadline date in UTC.</summary>
     public DateTime? DueDate { get; set; }
 
+    /// <summary>Indicates whether this task was added rapidly during an active focus session (parked thought).</summary>
+    public bool IsQuickAdd { get; set; } = false;
+
     /// <summary>Optional list of tag IDs to assign.</summary>
     public List<Guid>? TagIds { get; set; }
 

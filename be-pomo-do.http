@@ -86,7 +86,20 @@ Content-Type: application/json
 
 ###
 
+### 7.1. Quick Add Task (Ghi nhanh việc chợt nhớ ra khi đang Focus - isQuickAdd: true)
+POST {{be_pomo_do_HostAddress}}/api/tasks
+Authorization: Bearer <paste_access_token_here>
+Content-Type: application/json
+
+{
+  "title": "Nhớ gọi điện hỏi thăm anh Tuấn về hợp đồng",
+  "isQuickAdd": true
+}
+
+###
+
 ### 8. Lấy danh sách Tasks (GET /api/tasks)
+# Có thể lọc riêng danh sách Quick Add: GET {{be_pomo_do_HostAddress}}/api/tasks?isQuickAdd=true
 GET {{be_pomo_do_HostAddress}}/api/tasks?sortBy=createdAt&isDescending=true
 Authorization: Bearer <paste_access_token_here>
 
@@ -164,4 +177,79 @@ Authorization: Bearer <paste_access_token_here>
 ### 17. Xóa Subtask vĩnh viễn (DELETE /api/tasks/{taskId}/subtasks/{subtaskId})
 DELETE {{be_pomo_do_HostAddress}}/api/tasks/<paste_task_id_here>/subtasks/<paste_subtask_id_here>
 Authorization: Bearer <paste_access_token_here>
+
+###
+
+### ========================================================
+### ⏱️ POMODORO SESSIONS & OVERTIME ENDPOINTS
+### ========================================================
+
+### 18. Bắt đầu phiên tập trung mới (POST /api/pomodoro/start)
+POST {{be_pomo_do_HostAddress}}/api/pomodoro/start
+Authorization: Bearer <paste_access_token_here>
+Content-Type: application/json
+
+{
+  "taskId": "<paste_task_id_here>",
+  "mode": 1,
+  "durationMinutes": 25
+}
+
+###
+
+### 19. Hoàn thành phiên tập trung kèm Overtime (POST /api/pomodoro/{id}/complete)
+POST {{be_pomo_do_HostAddress}}/api/pomodoro/<paste_session_id_here>/complete
+Authorization: Bearer <paste_access_token_here>
+Content-Type: application/json
+
+{
+  "actualSeconds": 2100,
+  "overtimeSeconds": 600,
+  "note": "Hoàn thành code tính năng và viết xong tài liệu"
+}
+
+###
+
+### 20. Hủy phiên tập trung giữa chừng (POST /api/pomodoro/{id}/cancel)
+POST {{be_pomo_do_HostAddress}}/api/pomodoro/<paste_session_id_here>/cancel
+Authorization: Bearer <paste_access_token_here>
+Content-Type: application/json
+
+{
+  "actualSeconds": 600
+}
+
+###
+
+### 21. Lấy lịch sử các phiên tập trung (GET /api/pomodoro/history)
+GET {{be_pomo_do_HostAddress}}/api/pomodoro/history
+Authorization: Bearer <paste_access_token_here>
+
+###
+
+### 22. Lấy dữ liệu thống kê tổng quan trong ngày & Streak (GET /api/pomodoro/summary)
+GET {{be_pomo_do_HostAddress}}/api/pomodoro/summary
+Authorization: Bearer <paste_access_token_here>
+
+###
+
+### 23. Lấy cấu hình thời lượng Pomodoro của người dùng (GET /api/settings)
+GET {{be_pomo_do_HostAddress}}/api/settings
+Authorization: Bearer <paste_access_token_here>
+
+###
+
+### 24. Cập nhật thời lượng Pomodoro sang 1 phút để test nhanh hoặc 50 phút (PUT /api/settings)
+PUT {{be_pomo_do_HostAddress}}/api/settings
+Authorization: Bearer <paste_access_token_here>
+Content-Type: application/json
+
+{
+  "focusDuration": 1,
+  "shortBreakDuration": 1,
+  "longBreakDuration": 2,
+  "autoStartBreaks": false,
+  "themeMode": "dark"
+}
+
 

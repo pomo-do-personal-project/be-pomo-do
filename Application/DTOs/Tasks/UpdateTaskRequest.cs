@@ -29,6 +29,9 @@ public class UpdateTaskRequest
     /// <summary>Updated deadline date in UTC.</summary>
     public DateTime? DueDate { get; set; }
 
+    /// <summary>Indicates whether this task is marked as a quick-add item.</summary>
+    public bool IsQuickAdd { get; set; }
+
     /// <summary>Updated list of tag IDs.</summary>
     public List<Guid>? TagIds { get; set; }
 }

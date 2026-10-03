@@ -11,171 +11,129 @@ namespace be_pomo_do.Presentation.Controllers;
 [ApiController]
 [Authorize]
 [Route("api/[controller]")]
-public class TasksController(ITaskService taskService) : ControllerBase
+public class TasksController : ControllerBase
 {
-    private readonly ITaskService _taskService = taskService ?? throw new ArgumentNullException(nameof(taskService));
+    private readonly ITaskService _taskService;
+
+    /// <summary>Initializes a new instance of <see cref="TasksController"/> with traditional constructor dependency injection.</summary>
+    /// <param name="taskService">The task application service instance.</param>
+    public TasksController(ITaskService taskService)
+    {
+        _taskService = taskService ?? throw new ArgumentNullException(nameof(taskService));
+    }
 
     /// <summary>Retrieves filtered and sorted tasks for the current user.</summary>
     [HttpGet]
-    [ProducesResponseType(typeof(ApiResponse<List<TaskDto>>), StatusCodes.Status200OK)]
-    [ProducesResponseType(typeof(ApiResponse<List<TaskDto>>), StatusCodes.Status401Unauthorized)]
-    public async Task<ActionResult<ApiResponse<List<TaskDto>>>> GetTasks(
-        [FromQuery] TaskFilterParams filterParams,
-        CancellationToken cancellationToken)
+    public async Task<ActionResult<ApiResponse<List<TaskDto>>>> GetTasks([FromQuery] TaskFilterParams filterParams)
     {
         var userId = GetCurrentUserId();
-        var tasks = await _taskService.GetTasksAsync(userId, filterParams, cancellationToken);
+        var tasks = await _taskService.GetTasksAsync(userId, filterParams, HttpContext.RequestAborted);
         return Ok(ApiResponse<List<TaskDto>>.Ok(tasks, "Lấy danh sách công việc thành công."));
     }
 
     /// <summary>Retrieves specific task details by ID.</summary>
     [HttpGet("{id:guid}")]
-    [ProducesResponseType(typeof(ApiResponse<TaskDto>), StatusCodes.Status200OK)]
-    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
-    [ProducesResponseType(typeof(ApiResponse<TaskDto>), StatusCodes.Status401Unauthorized)]
-    public async Task<ActionResult<ApiResponse<TaskDto>>> GetTaskById(
-        [FromRoute] Guid id,
-        CancellationToken cancellationToken)
+    public async Task<ActionResult<ApiResponse<TaskDto>>> GetTaskById([FromRoute] Guid id)
     {
         var userId = GetCurrentUserId();
-        var task = await _taskService.GetTaskByIdAsync(id, userId, cancellationToken);
+        var task = await _taskService.GetTaskByIdAsync(id, userId, HttpContext.RequestAborted);
         return Ok(ApiResponse<TaskDto>.Ok(task, "Lấy chi tiết công việc thành công."));
     }
 
     /// <summary>Creates a new task item with optional tags and initial subtasks.</summary>
     [HttpPost]
-    [ProducesResponseType(typeof(ApiResponse<TaskDto>), StatusCodes.Status201Created)]
-    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
-    [ProducesResponseType(typeof(ApiResponse<TaskDto>), StatusCodes.Status401Unauthorized)]
-    public async Task<ActionResult<ApiResponse<TaskDto>>> CreateTask(
-        [FromBody] CreateTaskRequest request,
-        CancellationToken cancellationToken)
+    public async Task<ActionResult<ApiResponse<TaskDto>>> CreateTask([FromBody] CreateTaskRequest request)
     {
         var userId = GetCurrentUserId();
-        var task = await _taskService.CreateTaskAsync(userId, request, cancellationToken);
+        var task = await _taskService.CreateTaskAsync(userId, request, HttpContext.RequestAborted);
         return StatusCode(StatusCodes.Status201Created, ApiResponse<TaskDto>.Ok(task, "Tạo công việc thành công."));
     }
 
     /// <summary>Updates an existing task item.</summary>
     [HttpPut("{id:guid}")]
-    [ProducesResponseType(typeof(ApiResponse<TaskDto>), StatusCodes.Status200OK)]
-    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
-    [ProducesResponseType(typeof(ApiResponse<TaskDto>), StatusCodes.Status401Unauthorized)]
     public async Task<ActionResult<ApiResponse<TaskDto>>> UpdateTask(
         [FromRoute] Guid id,
-        [FromBody] UpdateTaskRequest request,
-        CancellationToken cancellationToken)
+        [FromBody] UpdateTaskRequest request)
     {
         var userId = GetCurrentUserId();
-        var task = await _taskService.UpdateTaskAsync(id, userId, request, cancellationToken);
+        var task = await _taskService.UpdateTaskAsync(id, userId, request, HttpContext.RequestAborted);
         return Ok(ApiResponse<TaskDto>.Ok(task, "Cập nhật công việc thành công."));
     }
 
     /// <summary>Updates the status of a task item (e.g. Todo, InProgress, Completed, Cancelled).</summary>
     [HttpPatch("{id:guid}/status")]
-    [ProducesResponseType(typeof(ApiResponse<TaskDto>), StatusCodes.Status200OK)]
-    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
-    [ProducesResponseType(typeof(ApiResponse<TaskDto>), StatusCodes.Status401Unauthorized)]
     public async Task<ActionResult<ApiResponse<TaskDto>>> UpdateTaskStatus(
         [FromRoute] Guid id,
-        [FromBody] UpdateTaskStatusRequest request,
-        CancellationToken cancellationToken)
+        [FromBody] UpdateTaskStatusRequest request)
     {
         var userId = GetCurrentUserId();
-        var task = await _taskService.UpdateTaskStatusAsync(id, userId, request.Status, cancellationToken);
+        var task = await _taskService.UpdateTaskStatusAsync(id, userId, request.Status, HttpContext.RequestAborted);
         return Ok(ApiResponse<TaskDto>.Ok(task, "Cập nhật trạng thái công việc thành công."));
     }
 
     /// <summary>Soft deletes a task item (moves to trash bin).</summary>
     [HttpDelete("{id:guid}")]
-    [ProducesResponseType(typeof(ApiResponse<string>), StatusCodes.Status200OK)]
-    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
-    [ProducesResponseType(typeof(ApiResponse<string>), StatusCodes.Status401Unauthorized)]
-    public async Task<ActionResult<ApiResponse<string>>> DeleteTask(
-        [FromRoute] Guid id,
-        CancellationToken cancellationToken)
+    public async Task<ActionResult<ApiResponse<string>>> DeleteTask([FromRoute] Guid id)
     {
         var userId = GetCurrentUserId();
-        await _taskService.SoftDeleteTaskAsync(id, userId, cancellationToken);
+        await _taskService.SoftDeleteTaskAsync(id, userId, HttpContext.RequestAborted);
         return Ok(ApiResponse<string>.Ok("Đã chuyển công việc vào thùng rác thành công."));
     }
 
     /// <summary>Restores a soft-deleted task item from trash bin.</summary>
     [HttpPost("{id:guid}/restore")]
-    [ProducesResponseType(typeof(ApiResponse<TaskDto>), StatusCodes.Status200OK)]
-    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
-    [ProducesResponseType(typeof(ApiResponse<TaskDto>), StatusCodes.Status401Unauthorized)]
-    public async Task<ActionResult<ApiResponse<TaskDto>>> RestoreTask(
-        [FromRoute] Guid id,
-        CancellationToken cancellationToken)
+    public async Task<ActionResult<ApiResponse<TaskDto>>> RestoreTask([FromRoute] Guid id)
     {
         var userId = GetCurrentUserId();
-        var task = await _taskService.RestoreTaskAsync(id, userId, cancellationToken);
+        var task = await _taskService.RestoreTaskAsync(id, userId, HttpContext.RequestAborted);
         return Ok(ApiResponse<TaskDto>.Ok(task, "Khôi phục công việc thành công."));
     }
 
     /// <summary>Adds a new subtask to an existing task.</summary>
     [HttpPost("{taskId:guid}/subtasks")]
-    [ProducesResponseType(typeof(ApiResponse<SubtaskDto>), StatusCodes.Status201Created)]
-    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
-    [ProducesResponseType(typeof(ApiResponse<SubtaskDto>), StatusCodes.Status401Unauthorized)]
     public async Task<ActionResult<ApiResponse<SubtaskDto>>> AddSubtask(
         [FromRoute] Guid taskId,
-        [FromBody] CreateSubtaskRequest request,
-        CancellationToken cancellationToken)
+        [FromBody] CreateSubtaskRequest request)
     {
         var userId = GetCurrentUserId();
-        var subtask = await _taskService.AddSubtaskAsync(taskId, userId, request, cancellationToken);
+        var subtask = await _taskService.AddSubtaskAsync(taskId, userId, request, HttpContext.RequestAborted);
         return StatusCode(StatusCodes.Status201Created, ApiResponse<SubtaskDto>.Ok(subtask, "Thêm subtask thành công."));
     }
 
     /// <summary>Toggles completion status of a subtask.</summary>
     [HttpPatch("{taskId:guid}/subtasks/{subtaskId:guid}/toggle")]
-    [ProducesResponseType(typeof(ApiResponse<SubtaskDto>), StatusCodes.Status200OK)]
-    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
-    [ProducesResponseType(typeof(ApiResponse<SubtaskDto>), StatusCodes.Status401Unauthorized)]
     public async Task<ActionResult<ApiResponse<SubtaskDto>>> ToggleSubtask(
         [FromRoute] Guid taskId,
-        [FromRoute] Guid subtaskId,
-        CancellationToken cancellationToken)
+        [FromRoute] Guid subtaskId)
     {
         var userId = GetCurrentUserId();
-        var subtask = await _taskService.ToggleSubtaskAsync(taskId, subtaskId, userId, cancellationToken);
+        var subtask = await _taskService.ToggleSubtaskAsync(taskId, subtaskId, userId, HttpContext.RequestAborted);
         return Ok(ApiResponse<SubtaskDto>.Ok(subtask, "Cập nhật trạng thái subtask thành công."));
     }
 
     /// <summary>Updates title or order of a subtask.</summary>
     [HttpPut("{taskId:guid}/subtasks/{subtaskId:guid}")]
-    [ProducesResponseType(typeof(ApiResponse<SubtaskDto>), StatusCodes.Status200OK)]
-    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
-    [ProducesResponseType(typeof(ApiResponse<SubtaskDto>), StatusCodes.Status401Unauthorized)]
     public async Task<ActionResult<ApiResponse<SubtaskDto>>> UpdateSubtask(
         [FromRoute] Guid taskId,
         [FromRoute] Guid subtaskId,
-        [FromBody] UpdateSubtaskRequest request,
-        CancellationToken cancellationToken)
+        [FromBody] UpdateSubtaskRequest request)
     {
         var userId = GetCurrentUserId();
-        var subtask = await _taskService.UpdateSubtaskAsync(taskId, subtaskId, userId, request, cancellationToken);
+        var subtask = await _taskService.UpdateSubtaskAsync(taskId, subtaskId, userId, request, HttpContext.RequestAborted);
         return Ok(ApiResponse<SubtaskDto>.Ok(subtask, "Cập nhật subtask thành công."));
     }
 
     /// <summary>Permanently deletes a subtask.</summary>
     [HttpDelete("{taskId:guid}/subtasks/{subtaskId:guid}")]
-    [ProducesResponseType(typeof(ApiResponse<string>), StatusCodes.Status200OK)]
-    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
-    [ProducesResponseType(typeof(ApiResponse<string>), StatusCodes.Status401Unauthorized)]
     public async Task<ActionResult<ApiResponse<string>>> DeleteSubtask(
         [FromRoute] Guid taskId,
-        [FromRoute] Guid subtaskId,
-        CancellationToken cancellationToken)
+        [FromRoute] Guid subtaskId)
     {
         var userId = GetCurrentUserId();
-        await _taskService.DeleteSubtaskAsync(taskId, subtaskId, userId, cancellationToken);
+        await _taskService.DeleteSubtaskAsync(taskId, subtaskId, userId, HttpContext.RequestAborted);
         return Ok(ApiResponse<string>.Ok("Đã xóa subtask thành công."));
     }
 
-    // Helper: Safely extracts current user ID from token claims
     private Guid GetCurrentUserId()
     {
         var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value

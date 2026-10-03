@@ -33,6 +33,9 @@ public class TaskDto
     /// <summary>Optional deadline date and time in UTC.</summary>
     public DateTime? DueDate { get; set; }
 
+    /// <summary>Indicates whether this task was created via quick-add during a focus session.</summary>
+    public bool IsQuickAdd { get; set; }
+
     /// <summary>Creation timestamp in UTC.</summary>
     public DateTime CreatedAt { get; set; }
 

@@ -64,16 +64,49 @@ namespace be_pomo_do.Infrastructure.Data.Migrations
                         .HasColumnType("uuid")
                         .HasColumnName("id");
 
+                    b.Property<int>("ActualSeconds")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer")
+                        .HasDefaultValue(0)
+                        .HasColumnName("actual_seconds");
+
+                    b.Property<DateTime?>("CompletedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("completed_at");
+
+                    b.Property<int>("DurationMinutes")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer")
+                        .HasDefaultValue(25)
+                        .HasColumnName("duration_minutes");
+
+                    b.Property<bool>("IsCompleted")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(true)
+                        .HasColumnName("is_completed");
+
                     b.Property<string>("Mode")
                         .IsRequired()
                         .HasColumnType("text")
                         .HasColumnName("mode");
+
+                    b.Property<string>("Note")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)")
+                        .HasColumnName("note");
 
                     b.Property<int>("OvertimeSeconds")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("integer")
                         .HasDefaultValue(0)
                         .HasColumnName("overtime_seconds");
+
+                    b.Property<DateTime>("StartedAt")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("started_at")
+                        .HasDefaultValueSql("NOW()");
 
                     b.Property<Guid?>("TaskId")
                         .HasColumnType("uuid")
@@ -245,6 +278,12 @@ namespace be_pomo_do.Infrastructure.Data.Migrations
                         .HasColumnType("boolean")
                         .HasDefaultValue(false)
                         .HasColumnName("is_deleted");
+
+                    b.Property<bool>("IsQuickAdd")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(false)
+                        .HasColumnName("is_quick_add");
 
                     b.Property<string>("Priority")
                         .IsRequired()

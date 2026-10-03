@@ -38,6 +38,11 @@ public class TaskRepository(AppDbContext context) : ITaskRepository
             query = query.Where(t => t.TaskTags.Any(tt => tt.TagId == filterParams.TagId.Value));
         }
 
+        if (filterParams.IsQuickAdd.HasValue)
+        {
+            query = query.Where(t => t.IsQuickAdd == filterParams.IsQuickAdd.Value);
+        }
+
         if (!string.IsNullOrWhiteSpace(filterParams.Search))
         {
             var searchPattern = $"%{filterParams.Search.Trim()}%";

@@ -13,6 +13,13 @@ builder.Services
 
 var app = builder.Build();
 
+// Tự động cập nhật Migration Database khi khởi động
+using (var scope = app.Services.CreateScope())
+{
+    var dbContext = scope.ServiceProvider.GetRequiredService<be_pomo_do.Infrastructure.Data.AppDbContext>();
+    await Microsoft.EntityFrameworkCore.RelationalDatabaseFacadeExtensions.MigrateAsync(dbContext.Database);
+}
+
 // 2. HTTP Request Pipeline
 app.UseExceptionHandler();
 

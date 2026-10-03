@@ -15,6 +15,9 @@ public class TaskFilterParams
     /// <summary>Filter tasks associated with a specific tag.</summary>
     public Guid? TagId { get; set; }
 
+    /// <summary>Filter tasks by whether they were quick-added during an active session.</summary>
+    public bool? IsQuickAdd { get; set; }
+
     /// <summary>Search keyword for task title.</summary>
     public string? Search { get; set; }
 

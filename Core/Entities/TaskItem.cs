@@ -13,6 +13,7 @@ public class TaskItem
     public int EstimatedPomodoros { get; set; } = 1;
     public int EstimatedMinutes { get; set; } = 25;
     public DateTime? DueDate { get; set; }
+    public bool IsQuickAdd { get; set; } = false;
     public bool IsDeleted { get; set; } = false;
     public DateTime? DeletedAt { get; set; }
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
