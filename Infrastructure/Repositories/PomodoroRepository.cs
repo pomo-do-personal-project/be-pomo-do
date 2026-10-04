@@ -9,28 +9,29 @@ namespace be_pomo_do.Infrastructure.Repositories;
 public class PomodoroRepository : IPomodoroRepository
 {
     private readonly AppDbContext _context;
+    private readonly ICancellationTokenProvider _ctProvider;
+    private CancellationToken Ct => _ctProvider.Token;
 
-    /// <summary>Initializes a new instance of <see cref="PomodoroRepository"/> with explicit dependency injection.</summary>
-    /// <param name="context">The database context.</param>
-    public PomodoroRepository(AppDbContext context)
+    /// <summary>Initializes a new instance of <see cref="PomodoroRepository"/>.</summary>
+    public PomodoroRepository(AppDbContext context, ICancellationTokenProvider cancellationTokenProvider)
     {
         _context = context ?? throw new ArgumentNullException(nameof(context));
+        _ctProvider = cancellationTokenProvider ?? throw new ArgumentNullException(nameof(cancellationTokenProvider));
     }
 
     /// <inheritdoc/>
-    public async Task<FocusSession?> GetSessionByIdAsync(Guid sessionId, Guid userId, CancellationToken ct = default)
+    public async Task<FocusSession?> GetSessionByIdAsync(Guid sessionId, Guid userId)
     {
         return await _context.FocusSessions
             .Include(f => f.Task)
-            .FirstOrDefaultAsync(f => f.Id == sessionId && f.UserId == userId, ct);
+            .FirstOrDefaultAsync(f => f.Id == sessionId && f.UserId == userId, Ct);
     }
 
     /// <inheritdoc/>
-    public async Task<List<FocusSession>> GetSessionHistoryAsync(Guid userId, DateTime? fromUtc = null, DateTime? toUtc = null, CancellationToken ct = default)
+    public async Task<List<FocusSession>> GetSessionHistoryAsync(Guid userId, DateTime? fromUtc = null, DateTime? toUtc = null)
     {
-        var query = _context.FocusSessions
+        IQueryable<FocusSession> query = _context.FocusSessions
             .AsNoTracking()
-            .Include(f => f.Task)
             .Where(f => f.UserId == userId);
 
         if (fromUtc.HasValue)
@@ -44,32 +45,33 @@ public class PomodoroRepository : IPomodoroRepository
         }
 
         return await query
+            .Include(f => f.Task)
             .OrderByDescending(f => f.StartedAt)
-            .ToListAsync(ct);
+            .ToListAsync(Ct);
     }
 
     /// <inheritdoc/>
-    public async Task AddSessionAsync(FocusSession session, CancellationToken ct = default)
+    public async Task AddSessionAsync(FocusSession session)
     {
-        await _context.FocusSessions.AddAsync(session, ct);
+        await _context.FocusSessions.AddAsync(session, Ct);
     }
 
     /// <inheritdoc/>
-    public async Task<DailyStreak?> GetDailyStreakByUserIdAsync(Guid userId, CancellationToken ct = default)
+    public async Task<DailyStreak?> GetDailyStreakByUserIdAsync(Guid userId)
     {
         return await _context.DailyStreaks
-            .FirstOrDefaultAsync(s => s.UserId == userId, ct);
+            .FirstOrDefaultAsync(d => d.UserId == userId, Ct);
     }
 
     /// <inheritdoc/>
-    public async Task AddDailyStreakAsync(DailyStreak dailyStreak, CancellationToken ct = default)
+    public async Task AddDailyStreakAsync(DailyStreak dailyStreak)
     {
-        await _context.DailyStreaks.AddAsync(dailyStreak, ct);
+        await _context.DailyStreaks.AddAsync(dailyStreak, Ct);
     }
 
     /// <inheritdoc/>
-    public async Task SaveChangesAsync(CancellationToken ct = default)
+    public async Task SaveChangesAsync()
     {
-        await _context.SaveChangesAsync(ct);
+        await _context.SaveChangesAsync(Ct);
     }
 }

@@ -21,6 +21,10 @@ public static class DependencyInjection
         services.AddSingleton<Application.Common.Interfaces.IPasswordHasher, Authentication.PasswordHasher>();
         services.AddSingleton<Application.Common.Interfaces.IJwtTokenGenerator, Authentication.JwtTokenGenerator>();
 
+        // 4. Đăng ký HttpContextAccessor & CancellationTokenProvider
+        services.AddHttpContextAccessor();
+        services.AddScoped<Application.Common.Interfaces.ICancellationTokenProvider, Services.HttpContextCancellationTokenProvider>();
+
         // 4. Scrutor: Tự động quét và đăng ký tất cả các class có đuôi Repository (map với I...Repository tương ứng)
         services.Scan(scan => scan
             .FromAssemblyOf<Program>()

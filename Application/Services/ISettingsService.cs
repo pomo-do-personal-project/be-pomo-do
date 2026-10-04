@@ -6,8 +6,8 @@ namespace be_pomo_do.Application.Services;
 public interface ISettingsService
 {
     /// <summary>Gets user preferences, creating defaults if not present.</summary>
-    Task<UserSettingsDto> GetSettingsAsync(Guid userId, CancellationToken ct = default);
+    Task<UserSettingsDto> GetSettingsAsync(Guid userId);
 
     /// <summary>Updates user preferences and pomodoro durations.</summary>
-    Task<UserSettingsDto> UpdateSettingsAsync(Guid userId, UpdateUserSettingsRequest request, CancellationToken ct = default);
+    Task<UserSettingsDto> UpdateSettingsAsync(Guid userId, UpdateUserSettingsRequest request);
 }

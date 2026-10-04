@@ -6,11 +6,11 @@ namespace be_pomo_do.Application.Common.Interfaces;
 public interface ISettingsRepository
 {
     /// <summary>Retrieves user settings by user identifier.</summary>
-    Task<UserSettings?> GetByUserIdAsync(Guid userId, CancellationToken ct = default);
+    Task<UserSettings?> GetByUserIdAsync(Guid userId);
 
     /// <summary>Adds initial settings for a user.</summary>
-    Task AddAsync(UserSettings settings, CancellationToken ct = default);
+    Task AddAsync(UserSettings settings);
 
     /// <summary>Saves all pending changes to the database context.</summary>
-    Task SaveChangesAsync(CancellationToken ct = default);
+    Task SaveChangesAsync();
 }

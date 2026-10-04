@@ -3,8 +3,14 @@ using Microsoft.EntityFrameworkCore;
 
 namespace be_pomo_do.Infrastructure.Data;
 
-public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(options)
+public class AppDbContext : DbContext
 {
+    /// <summary>Initializes a new instance of the <see cref="AppDbContext"/> class.</summary>
+    /// <param name="options">The options to be used by a <see cref="DbContext"/>.</param>
+    public AppDbContext(DbContextOptions<AppDbContext> options) : base(options)
+    {
+    }
+
     public DbSet<User> Users => Set<User>();
     public DbSet<UserSettings> UserSettings => Set<UserSettings>();
     public DbSet<DailyStreak> DailyStreaks => Set<DailyStreak>();

@@ -8,21 +8,27 @@ using TaskStatus = be_pomo_do.Core.ValueObjects.TaskStatus;
 namespace be_pomo_do.Application.Services;
 
 /// <summary>Application service implementing task and subtask business operations.</summary>
-public class TaskService(ITaskRepository taskRepository) : ITaskService
+public class TaskService : ITaskService
 {
-    private readonly ITaskRepository _taskRepository = taskRepository ?? throw new ArgumentNullException(nameof(taskRepository));
+    private readonly ITaskRepository _taskRepository;
+
+    /// <summary>Initializes a new instance of <see cref="TaskService"/>.</summary>
+    public TaskService(ITaskRepository taskRepository)
+    {
+        _taskRepository = taskRepository ?? throw new ArgumentNullException(nameof(taskRepository));
+    }
 
     /// <inheritdoc/>
-    public async Task<List<TaskDto>> GetTasksAsync(Guid userId, TaskFilterParams filterParams, CancellationToken ct = default)
+    public async Task<List<TaskDto>> GetTasksAsync(Guid userId, TaskFilterParams filterParams)
     {
-        var tasks = await _taskRepository.GetUserTasksAsync(userId, filterParams, ct);
+        var tasks = await _taskRepository.GetUserTasksAsync(userId, filterParams);
         return tasks.Select(MapToTaskDto).ToList();
     }
 
     /// <inheritdoc/>
-    public async Task<TaskDto> GetTaskByIdAsync(Guid taskId, Guid userId, CancellationToken ct = default)
+    public async Task<TaskDto> GetTaskByIdAsync(Guid taskId, Guid userId)
     {
-        var task = await _taskRepository.GetTaskByIdAsync(taskId, userId, includeDeleted: false, ct);
+        var task = await _taskRepository.GetTaskByIdAsync(taskId, userId, includeDeleted: false);
         if (task == null)
         {
             throw new DomainException("Công việc không tồn tại hoặc bạn không có quyền truy cập.");
@@ -32,7 +38,7 @@ public class TaskService(ITaskRepository taskRepository) : ITaskService
     }
 
     /// <inheritdoc/>
-    public async Task<TaskDto> CreateTaskAsync(Guid userId, CreateTaskRequest request, CancellationToken ct = default)
+    public async Task<TaskDto> CreateTaskAsync(Guid userId, CreateTaskRequest request)
     {
         var task = new TaskItem
         {
@@ -66,7 +72,7 @@ public class TaskService(ITaskRepository taskRepository) : ITaskService
         // Associate tags if provided
         if (request.TagIds != null && request.TagIds.Count > 0)
         {
-            var validTags = await _taskRepository.GetUserTagsByIdsAsync(userId, request.TagIds, ct);
+            var validTags = await _taskRepository.GetUserTagsByIdsAsync(userId, request.TagIds);
             foreach (var tag in validTags)
             {
                 task.TaskTags.Add(new TaskTag
@@ -78,16 +84,16 @@ public class TaskService(ITaskRepository taskRepository) : ITaskService
             }
         }
 
-        await _taskRepository.AddTaskAsync(task, ct);
-        await _taskRepository.SaveChangesAsync(ct);
+        await _taskRepository.AddTaskAsync(task);
+        await _taskRepository.SaveChangesAsync();
 
         return MapToTaskDto(task);
     }
 
     /// <inheritdoc/>
-    public async Task<TaskDto> UpdateTaskAsync(Guid taskId, Guid userId, UpdateTaskRequest request, CancellationToken ct = default)
+    public async Task<TaskDto> UpdateTaskAsync(Guid taskId, Guid userId, UpdateTaskRequest request)
     {
-        var task = await _taskRepository.GetTaskByIdAsync(taskId, userId, includeDeleted: false, ct);
+        var task = await _taskRepository.GetTaskByIdAsync(taskId, userId, includeDeleted: false);
         if (task == null)
         {
             throw new DomainException("Công việc không tồn tại hoặc bạn không có quyền chỉnh sửa.");
@@ -106,7 +112,7 @@ public class TaskService(ITaskRepository taskRepository) : ITaskService
         if (request.TagIds != null)
         {
             task.TaskTags.Clear();
-            var validTags = await _taskRepository.GetUserTagsByIdsAsync(userId, request.TagIds, ct);
+            var validTags = await _taskRepository.GetUserTagsByIdsAsync(userId, request.TagIds);
             foreach (var tag in validTags)
             {
                 task.TaskTags.Add(new TaskTag
@@ -118,14 +124,14 @@ public class TaskService(ITaskRepository taskRepository) : ITaskService
             }
         }
 
-        await _taskRepository.SaveChangesAsync(ct);
+        await _taskRepository.SaveChangesAsync();
         return MapToTaskDto(task);
     }
 
     /// <inheritdoc/>
-    public async Task<TaskDto> UpdateTaskStatusAsync(Guid taskId, Guid userId, TaskStatus status, CancellationToken ct = default)
+    public async Task<TaskDto> UpdateTaskStatusAsync(Guid taskId, Guid userId, TaskStatus status)
     {
-        var task = await _taskRepository.GetTaskByIdAsync(taskId, userId, includeDeleted: false, ct);
+        var task = await _taskRepository.GetTaskByIdAsync(taskId, userId, includeDeleted: false);
         if (task == null)
         {
             throw new DomainException("Công việc không tồn tại hoặc bạn không có quyền chỉnh sửa.");
@@ -134,14 +140,14 @@ public class TaskService(ITaskRepository taskRepository) : ITaskService
         task.Status = status;
         task.UpdatedAt = DateTime.UtcNow;
 
-        await _taskRepository.SaveChangesAsync(ct);
+        await _taskRepository.SaveChangesAsync();
         return MapToTaskDto(task);
     }
 
     /// <inheritdoc/>
-    public async Task SoftDeleteTaskAsync(Guid taskId, Guid userId, CancellationToken ct = default)
+    public async Task SoftDeleteTaskAsync(Guid taskId, Guid userId)
     {
-        var task = await _taskRepository.GetTaskByIdAsync(taskId, userId, includeDeleted: false, ct);
+        var task = await _taskRepository.GetTaskByIdAsync(taskId, userId, includeDeleted: false);
         if (task == null)
         {
             throw new DomainException("Công việc không tồn tại hoặc đã bị xóa.");
@@ -151,13 +157,26 @@ public class TaskService(ITaskRepository taskRepository) : ITaskService
         task.DeletedAt = DateTime.UtcNow;
         task.UpdatedAt = DateTime.UtcNow;
 
-        await _taskRepository.SaveChangesAsync(ct);
+        await _taskRepository.SaveChangesAsync();
     }
 
     /// <inheritdoc/>
-    public async Task<TaskDto> RestoreTaskAsync(Guid taskId, Guid userId, CancellationToken ct = default)
+    public async Task HardDeleteTaskAsync(Guid taskId, Guid userId)
     {
-        var task = await _taskRepository.GetTaskByIdAsync(taskId, userId, includeDeleted: true, ct);
+        var task = await _taskRepository.GetTaskByIdAsync(taskId, userId, includeDeleted: true);
+        if (task == null)
+        {
+            throw new DomainException("Công việc không tồn tại hoặc bạn không có quyền xóa.");
+        }
+
+        _taskRepository.RemoveTask(task);
+        await _taskRepository.SaveChangesAsync();
+    }
+
+    /// <inheritdoc/>
+    public async Task<TaskDto> RestoreTaskAsync(Guid taskId, Guid userId)
+    {
+        var task = await _taskRepository.GetTaskByIdAsync(taskId, userId, includeDeleted: true);
         if (task == null || !task.IsDeleted)
         {
             throw new DomainException("Không tìm thấy công việc này trong thùng rác để khôi phục.");
@@ -167,14 +186,14 @@ public class TaskService(ITaskRepository taskRepository) : ITaskService
         task.DeletedAt = null;
         task.UpdatedAt = DateTime.UtcNow;
 
-        await _taskRepository.SaveChangesAsync(ct);
+        await _taskRepository.SaveChangesAsync();
         return MapToTaskDto(task);
     }
 
     /// <inheritdoc/>
-    public async Task<SubtaskDto> AddSubtaskAsync(Guid taskId, Guid userId, CreateSubtaskRequest request, CancellationToken ct = default)
+    public async Task<SubtaskDto> AddSubtaskAsync(Guid taskId, Guid userId, CreateSubtaskRequest request)
     {
-        var task = await _taskRepository.GetTaskByIdAsync(taskId, userId, includeDeleted: false, ct);
+        var task = await _taskRepository.GetTaskByIdAsync(taskId, userId, includeDeleted: false);
         if (task == null)
         {
             throw new DomainException("Công việc cha không tồn tại hoặc bạn không có quyền thêm subtask.");
@@ -188,22 +207,22 @@ public class TaskService(ITaskRepository taskRepository) : ITaskService
             IsCompleted = false
         };
 
-        await _taskRepository.AddSubtaskAsync(subtask, ct);
-        await _taskRepository.SaveChangesAsync(ct);
+        await _taskRepository.AddSubtaskAsync(subtask);
+        await _taskRepository.SaveChangesAsync();
 
         return MapToSubtaskDto(subtask);
     }
 
     /// <inheritdoc/>
-    public async Task<SubtaskDto> ToggleSubtaskAsync(Guid taskId, Guid subtaskId, Guid userId, CancellationToken ct = default)
+    public async Task<SubtaskDto> ToggleSubtaskAsync(Guid taskId, Guid subtaskId, Guid userId)
     {
-        var task = await _taskRepository.GetTaskByIdAsync(taskId, userId, includeDeleted: false, ct);
+        var task = await _taskRepository.GetTaskByIdAsync(taskId, userId, includeDeleted: false);
         if (task == null)
         {
             throw new DomainException("Công việc không tồn tại hoặc bạn không có quyền thao tác.");
         }
 
-        var subtask = await _taskRepository.GetSubtaskByIdAsync(subtaskId, taskId, ct);
+        var subtask = await _taskRepository.GetSubtaskByIdAsync(subtaskId, taskId);
         if (subtask == null)
         {
             throw new DomainException("Subtask không tồn tại trong công việc này.");
@@ -212,20 +231,20 @@ public class TaskService(ITaskRepository taskRepository) : ITaskService
         subtask.IsCompleted = !subtask.IsCompleted;
         task.UpdatedAt = DateTime.UtcNow;
 
-        await _taskRepository.SaveChangesAsync(ct);
+        await _taskRepository.SaveChangesAsync();
         return MapToSubtaskDto(subtask);
     }
 
     /// <inheritdoc/>
-    public async Task<SubtaskDto> UpdateSubtaskAsync(Guid taskId, Guid subtaskId, Guid userId, UpdateSubtaskRequest request, CancellationToken ct = default)
+    public async Task<SubtaskDto> UpdateSubtaskAsync(Guid taskId, Guid subtaskId, Guid userId, UpdateSubtaskRequest request)
     {
-        var task = await _taskRepository.GetTaskByIdAsync(taskId, userId, includeDeleted: false, ct);
+        var task = await _taskRepository.GetTaskByIdAsync(taskId, userId, includeDeleted: false);
         if (task == null)
         {
             throw new DomainException("Công việc không tồn tại hoặc bạn không có quyền thao tác.");
         }
 
-        var subtask = await _taskRepository.GetSubtaskByIdAsync(subtaskId, taskId, ct);
+        var subtask = await _taskRepository.GetSubtaskByIdAsync(subtaskId, taskId);
         if (subtask == null)
         {
             throw new DomainException("Subtask không tồn tại trong công việc này.");
@@ -236,20 +255,20 @@ public class TaskService(ITaskRepository taskRepository) : ITaskService
         subtask.OrderIndex = request.OrderIndex;
         task.UpdatedAt = DateTime.UtcNow;
 
-        await _taskRepository.SaveChangesAsync(ct);
+        await _taskRepository.SaveChangesAsync();
         return MapToSubtaskDto(subtask);
     }
 
     /// <inheritdoc/>
-    public async Task DeleteSubtaskAsync(Guid taskId, Guid subtaskId, Guid userId, CancellationToken ct = default)
+    public async Task DeleteSubtaskAsync(Guid taskId, Guid subtaskId, Guid userId)
     {
-        var task = await _taskRepository.GetTaskByIdAsync(taskId, userId, includeDeleted: false, ct);
+        var task = await _taskRepository.GetTaskByIdAsync(taskId, userId, includeDeleted: false);
         if (task == null)
         {
             throw new DomainException("Công việc không tồn tại hoặc bạn không có quyền thao tác.");
         }
 
-        var subtask = await _taskRepository.GetSubtaskByIdAsync(subtaskId, taskId, ct);
+        var subtask = await _taskRepository.GetSubtaskByIdAsync(subtaskId, taskId);
         if (subtask == null)
         {
             throw new DomainException("Subtask không tồn tại trong công việc này.");
@@ -258,7 +277,7 @@ public class TaskService(ITaskRepository taskRepository) : ITaskService
         _taskRepository.RemoveSubtask(subtask);
         task.UpdatedAt = DateTime.UtcNow;
 
-        await _taskRepository.SaveChangesAsync(ct);
+        await _taskRepository.SaveChangesAsync();
     }
 
     // Helper mapping functions

@@ -7,12 +7,21 @@ using Microsoft.EntityFrameworkCore;
 namespace be_pomo_do.Infrastructure.Repositories;
 
 /// <summary>Entity Framework Core implementation of <see cref="ITaskRepository"/>.</summary>
-public class TaskRepository(AppDbContext context) : ITaskRepository
+public class TaskRepository : ITaskRepository
 {
-    private readonly AppDbContext _context = context ?? throw new ArgumentNullException(nameof(context));
+    private readonly AppDbContext _context;
+    private readonly ICancellationTokenProvider _ctProvider;
+    private CancellationToken Ct => _ctProvider.Token;
+
+    /// <summary>Initializes a new instance of <see cref="TaskRepository"/>.</summary>
+    public TaskRepository(AppDbContext context, ICancellationTokenProvider cancellationTokenProvider)
+    {
+        _context = context ?? throw new ArgumentNullException(nameof(context));
+        _ctProvider = cancellationTokenProvider ?? throw new ArgumentNullException(nameof(cancellationTokenProvider));
+    }
 
     /// <inheritdoc/>
-    public async Task<List<TaskItem>> GetUserTasksAsync(Guid userId, TaskFilterParams filterParams, CancellationToken ct = default)
+    public async Task<List<TaskItem>> GetUserTasksAsync(Guid userId, TaskFilterParams filterParams)
     {
         IQueryable<TaskItem> query = _context.Tasks.AsNoTracking();
 
@@ -62,11 +71,11 @@ public class TaskRepository(AppDbContext context) : ITaskRepository
             .Include(t => t.TaskTags)
                 .ThenInclude(tt => tt.Tag)
             .Include(t => t.FocusSessions)
-            .ToListAsync(ct);
+            .ToListAsync(Ct);
     }
 
     /// <inheritdoc/>
-    public async Task<TaskItem?> GetTaskByIdAsync(Guid taskId, Guid userId, bool includeDeleted = false, CancellationToken ct = default)
+    public async Task<TaskItem?> GetTaskByIdAsync(Guid taskId, Guid userId, bool includeDeleted = false)
     {
         IQueryable<TaskItem> query = _context.Tasks;
 
@@ -80,26 +89,26 @@ public class TaskRepository(AppDbContext context) : ITaskRepository
             .Include(t => t.TaskTags)
                 .ThenInclude(tt => tt.Tag)
             .Include(t => t.FocusSessions)
-            .FirstOrDefaultAsync(t => t.Id == taskId && t.UserId == userId, ct);
+            .FirstOrDefaultAsync(t => t.Id == taskId && t.UserId == userId, Ct);
     }
 
     /// <inheritdoc/>
-    public async Task AddTaskAsync(TaskItem task, CancellationToken ct = default)
+    public async Task AddTaskAsync(TaskItem task)
     {
-        await _context.Tasks.AddAsync(task, ct);
+        await _context.Tasks.AddAsync(task, Ct);
     }
 
     /// <inheritdoc/>
-    public async Task<Subtask?> GetSubtaskByIdAsync(Guid subtaskId, Guid taskId, CancellationToken ct = default)
+    public async Task<Subtask?> GetSubtaskByIdAsync(Guid subtaskId, Guid taskId)
     {
         return await _context.Subtasks
-            .FirstOrDefaultAsync(s => s.Id == subtaskId && s.TaskId == taskId, ct);
+            .FirstOrDefaultAsync(s => s.Id == subtaskId && s.TaskId == taskId, Ct);
     }
 
     /// <inheritdoc/>
-    public async Task AddSubtaskAsync(Subtask subtask, CancellationToken ct = default)
+    public async Task AddSubtaskAsync(Subtask subtask)
     {
-        await _context.Subtasks.AddAsync(subtask, ct);
+        await _context.Subtasks.AddAsync(subtask, Ct);
     }
 
     /// <inheritdoc/>
@@ -109,18 +118,24 @@ public class TaskRepository(AppDbContext context) : ITaskRepository
     }
 
     /// <inheritdoc/>
-    public async Task<List<Tag>> GetUserTagsByIdsAsync(Guid userId, List<Guid> tagIds, CancellationToken ct = default)
+    public void RemoveTask(TaskItem task)
+    {
+        _context.Tasks.Remove(task);
+    }
+
+    /// <inheritdoc/>
+    public async Task<List<Tag>> GetUserTagsByIdsAsync(Guid userId, List<Guid> tagIds)
     {
         if (tagIds.Count == 0) return [];
 
         return await _context.Tags
             .Where(t => t.UserId == userId && tagIds.Contains(t.Id))
-            .ToListAsync(ct);
+            .ToListAsync(Ct);
     }
 
     /// <inheritdoc/>
-    public async Task SaveChangesAsync(CancellationToken ct = default)
+    public async Task SaveChangesAsync()
     {
-        await _context.SaveChangesAsync(ct);
+        await _context.SaveChangesAsync(Ct);
     }
 }

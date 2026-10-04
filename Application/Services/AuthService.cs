@@ -9,25 +9,33 @@ using Microsoft.Extensions.Options;
 namespace be_pomo_do.Application.Services;
 
 /// <summary>Provides application business workflows for user authentication, registration, token rotation, and session management.</summary>
-public class AuthService(
-    IUserRepository userRepository,
-    IPasswordHasher passwordHasher,
-    IJwtTokenGenerator jwtTokenGenerator,
-    IOptions<JwtOptions> jwtOptions) : IAuthService
+public class AuthService : IAuthService
 {
-    private readonly IUserRepository _userRepository = userRepository ?? throw new ArgumentNullException(nameof(userRepository));
-    private readonly IPasswordHasher _passwordHasher = passwordHasher ?? throw new ArgumentNullException(nameof(passwordHasher));
-    private readonly IJwtTokenGenerator _jwtTokenGenerator = jwtTokenGenerator ?? throw new ArgumentNullException(nameof(jwtTokenGenerator));
-    private readonly JwtOptions _jwtOptions = jwtOptions?.Value ?? throw new ArgumentNullException(nameof(jwtOptions));
+    private readonly IUserRepository _userRepository;
+    private readonly IPasswordHasher _passwordHasher;
+    private readonly IJwtTokenGenerator _jwtTokenGenerator;
+    private readonly JwtOptions _jwtOptions;
 
+    /// <summary>Initializes a new instance of <see cref="AuthService"/>.</summary>
+    public AuthService(
+        IUserRepository userRepository,
+        IPasswordHasher passwordHasher,
+        IJwtTokenGenerator jwtTokenGenerator,
+        IOptions<JwtOptions> jwtOptions)
+    {
+        _userRepository = userRepository ?? throw new ArgumentNullException(nameof(userRepository));
+        _passwordHasher = passwordHasher ?? throw new ArgumentNullException(nameof(passwordHasher));
+        _jwtTokenGenerator = jwtTokenGenerator ?? throw new ArgumentNullException(nameof(jwtTokenGenerator));
+        _jwtOptions = jwtOptions?.Value ?? throw new ArgumentNullException(nameof(jwtOptions));
+    }
 
     /// <inheritdoc/>
-    public async Task<AuthResponse> RegisterAsync(RegisterRequest request, CancellationToken cancellationToken = default)
+    public async Task<AuthResponse> RegisterAsync(RegisterRequest request)
     {
         ArgumentNullException.ThrowIfNull(request);
 
         // 1. Kiểm tra email đã tồn tại hay chưa
-        var emailExists = await _userRepository.ExistsByEmailAsync(request.Email, cancellationToken);
+        var emailExists = await _userRepository.ExistsByEmailAsync(request.Email);
         if (emailExists)
         {
             throw new DomainException("Email này đã được sử dụng. Vui lòng chọn email khác.");
@@ -83,8 +91,8 @@ public class AuthService(
         user.RefreshTokens.Add(refreshToken);
 
         // 8. Lưu đồng thời toàn bộ vào Database qua UserRepository
-        await _userRepository.AddAsync(user, cancellationToken);
-        await _userRepository.SaveChangesAsync(cancellationToken);
+        await _userRepository.AddAsync(user);
+        await _userRepository.SaveChangesAsync();
 
         // 9. Trả về AuthResponse
         var userDto = new UserDto(
@@ -104,10 +112,10 @@ public class AuthService(
     }
 
     /// <inheritdoc/>
-    public async Task<AuthResponse> LoginAsync(LoginRequest request, CancellationToken cancellationToken = default)
+    public async Task<AuthResponse> LoginAsync(LoginRequest request)
     {
         // 1. Tìm người dùng theo Email
-        var user = await _userRepository.GetByEmailAsync(request.Email.Trim().ToLowerInvariant(), cancellationToken);
+        var user = await _userRepository.GetByEmailAsync(request.Email.Trim().ToLowerInvariant());
         if (user is null)
         {
             throw new DomainException("Email hoặc mật khẩu không chính xác.");
@@ -133,8 +141,8 @@ public class AuthService(
             IsRevoked = false
         };
 
-        await _userRepository.AddRefreshTokenAsync(refreshToken, cancellationToken);
-        await _userRepository.SaveChangesAsync(cancellationToken);
+        await _userRepository.AddRefreshTokenAsync(refreshToken);
+        await _userRepository.SaveChangesAsync();
 
         // 5. Trả về AuthResponse
         var userDto = new UserDto(
@@ -154,7 +162,7 @@ public class AuthService(
     }
 
     /// <inheritdoc/>
-    public async Task<AuthResponse> RefreshTokenAsync(string refreshTokenString, CancellationToken cancellationToken = default)
+    public async Task<AuthResponse> RefreshTokenAsync(string refreshTokenString)
     {
         if (string.IsNullOrWhiteSpace(refreshTokenString))
         {
@@ -162,7 +170,7 @@ public class AuthService(
         }
 
         // 1. Tìm refresh token trong CSDL
-        var existingToken = await _userRepository.GetRefreshTokenWithUserAsync(refreshTokenString, cancellationToken);
+        var existingToken = await _userRepository.GetRefreshTokenWithUserAsync(refreshTokenString);
         if (existingToken is null)
         {
             throw new DomainException("Refresh token không hợp lệ hoặc không tồn tại.");
@@ -200,12 +208,12 @@ public class AuthService(
             IsRevoked = false
         };
 
-        await _userRepository.AddRefreshTokenAsync(newRefreshToken, cancellationToken);
+        await _userRepository.AddRefreshTokenAsync(newRefreshToken);
 
         // 5. Cấp mới Access Token
         var newAccessToken = _jwtTokenGenerator.GenerateAccessToken(user);
 
-        await _userRepository.SaveChangesAsync(cancellationToken);
+        await _userRepository.SaveChangesAsync();
 
         // 6. Trả về AuthResponse
         var userDto = new UserDto(
@@ -225,9 +233,9 @@ public class AuthService(
     }
 
     /// <inheritdoc/>
-    public async Task<UserDto> GetMeAsync(Guid userId, CancellationToken cancellationToken = default)
+    public async Task<UserDto> GetMeAsync(Guid userId)
     {
-        var user = await _userRepository.GetByIdAsync(userId, cancellationToken);
+        var user = await _userRepository.GetByIdAsync(userId);
         if (user is null)
         {
             throw new DomainException("Không tìm thấy thông tin tài khoản người dùng.");
@@ -243,19 +251,18 @@ public class AuthService(
     }
 
     /// <inheritdoc/>
-    public async Task LogoutAsync(string? refreshTokenString, CancellationToken cancellationToken = default)
+    public async Task LogoutAsync(string? refreshTokenString)
     {
         if (string.IsNullOrWhiteSpace(refreshTokenString))
         {
             return;
         }
 
-        var token = await _userRepository.GetRefreshTokenWithUserAsync(refreshTokenString, cancellationToken);
+        var token = await _userRepository.GetRefreshTokenWithUserAsync(refreshTokenString);
         if (token is not null && !token.IsRevoked)
         {
             token.IsRevoked = true;
-            await _userRepository.SaveChangesAsync(cancellationToken);
+            await _userRepository.SaveChangesAsync();
         }
     }
 }
-

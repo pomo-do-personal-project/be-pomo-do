@@ -27,7 +27,7 @@ public class TasksController : ControllerBase
     public async Task<ActionResult<ApiResponse<List<TaskDto>>>> GetTasks([FromQuery] TaskFilterParams filterParams)
     {
         var userId = GetCurrentUserId();
-        var tasks = await _taskService.GetTasksAsync(userId, filterParams, HttpContext.RequestAborted);
+        var tasks = await _taskService.GetTasksAsync(userId, filterParams);
         return Ok(ApiResponse<List<TaskDto>>.Ok(tasks, "Lấy danh sách công việc thành công."));
     }
 
@@ -36,7 +36,7 @@ public class TasksController : ControllerBase
     public async Task<ActionResult<ApiResponse<TaskDto>>> GetTaskById([FromRoute] Guid id)
     {
         var userId = GetCurrentUserId();
-        var task = await _taskService.GetTaskByIdAsync(id, userId, HttpContext.RequestAborted);
+        var task = await _taskService.GetTaskByIdAsync(id, userId);
         return Ok(ApiResponse<TaskDto>.Ok(task, "Lấy chi tiết công việc thành công."));
     }
 
@@ -45,7 +45,7 @@ public class TasksController : ControllerBase
     public async Task<ActionResult<ApiResponse<TaskDto>>> CreateTask([FromBody] CreateTaskRequest request)
     {
         var userId = GetCurrentUserId();
-        var task = await _taskService.CreateTaskAsync(userId, request, HttpContext.RequestAborted);
+        var task = await _taskService.CreateTaskAsync(userId, request);
         return StatusCode(StatusCodes.Status201Created, ApiResponse<TaskDto>.Ok(task, "Tạo công việc thành công."));
     }
 
@@ -56,7 +56,7 @@ public class TasksController : ControllerBase
         [FromBody] UpdateTaskRequest request)
     {
         var userId = GetCurrentUserId();
-        var task = await _taskService.UpdateTaskAsync(id, userId, request, HttpContext.RequestAborted);
+        var task = await _taskService.UpdateTaskAsync(id, userId, request);
         return Ok(ApiResponse<TaskDto>.Ok(task, "Cập nhật công việc thành công."));
     }
 
@@ -67,7 +67,7 @@ public class TasksController : ControllerBase
         [FromBody] UpdateTaskStatusRequest request)
     {
         var userId = GetCurrentUserId();
-        var task = await _taskService.UpdateTaskStatusAsync(id, userId, request.Status, HttpContext.RequestAborted);
+        var task = await _taskService.UpdateTaskStatusAsync(id, userId, request.Status);
         return Ok(ApiResponse<TaskDto>.Ok(task, "Cập nhật trạng thái công việc thành công."));
     }
 
@@ -76,8 +76,17 @@ public class TasksController : ControllerBase
     public async Task<ActionResult<ApiResponse<string>>> DeleteTask([FromRoute] Guid id)
     {
         var userId = GetCurrentUserId();
-        await _taskService.SoftDeleteTaskAsync(id, userId, HttpContext.RequestAborted);
+        await _taskService.SoftDeleteTaskAsync(id, userId);
         return Ok(ApiResponse<string>.Ok("Đã chuyển công việc vào thùng rác thành công."));
+    }
+
+    /// <summary>Permanently deletes a task item from database (hard delete).</summary>
+    [HttpDelete("{id:guid}/hard")]
+    public async Task<ActionResult<ApiResponse<string>>> HardDeleteTask([FromRoute] Guid id)
+    {
+        var userId = GetCurrentUserId();
+        await _taskService.HardDeleteTaskAsync(id, userId);
+        return Ok(ApiResponse<string>.Ok("Đã xóa vĩnh viễn công việc thành công."));
     }
 
     /// <summary>Restores a soft-deleted task item from trash bin.</summary>
@@ -85,7 +94,7 @@ public class TasksController : ControllerBase
     public async Task<ActionResult<ApiResponse<TaskDto>>> RestoreTask([FromRoute] Guid id)
     {
         var userId = GetCurrentUserId();
-        var task = await _taskService.RestoreTaskAsync(id, userId, HttpContext.RequestAborted);
+        var task = await _taskService.RestoreTaskAsync(id, userId);
         return Ok(ApiResponse<TaskDto>.Ok(task, "Khôi phục công việc thành công."));
     }
 
@@ -96,7 +105,7 @@ public class TasksController : ControllerBase
         [FromBody] CreateSubtaskRequest request)
     {
         var userId = GetCurrentUserId();
-        var subtask = await _taskService.AddSubtaskAsync(taskId, userId, request, HttpContext.RequestAborted);
+        var subtask = await _taskService.AddSubtaskAsync(taskId, userId, request);
         return StatusCode(StatusCodes.Status201Created, ApiResponse<SubtaskDto>.Ok(subtask, "Thêm subtask thành công."));
     }
 
@@ -107,7 +116,7 @@ public class TasksController : ControllerBase
         [FromRoute] Guid subtaskId)
     {
         var userId = GetCurrentUserId();
-        var subtask = await _taskService.ToggleSubtaskAsync(taskId, subtaskId, userId, HttpContext.RequestAborted);
+        var subtask = await _taskService.ToggleSubtaskAsync(taskId, subtaskId, userId);
         return Ok(ApiResponse<SubtaskDto>.Ok(subtask, "Cập nhật trạng thái subtask thành công."));
     }
 
@@ -119,7 +128,7 @@ public class TasksController : ControllerBase
         [FromBody] UpdateSubtaskRequest request)
     {
         var userId = GetCurrentUserId();
-        var subtask = await _taskService.UpdateSubtaskAsync(taskId, subtaskId, userId, request, HttpContext.RequestAborted);
+        var subtask = await _taskService.UpdateSubtaskAsync(taskId, subtaskId, userId, request);
         return Ok(ApiResponse<SubtaskDto>.Ok(subtask, "Cập nhật subtask thành công."));
     }
 
@@ -130,7 +139,7 @@ public class TasksController : ControllerBase
         [FromRoute] Guid subtaskId)
     {
         var userId = GetCurrentUserId();
-        await _taskService.DeleteSubtaskAsync(taskId, subtaskId, userId, HttpContext.RequestAborted);
+        await _taskService.DeleteSubtaskAsync(taskId, subtaskId, userId);
         return Ok(ApiResponse<string>.Ok("Đã xóa subtask thành công."));
     }
 

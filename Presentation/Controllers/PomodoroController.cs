@@ -27,7 +27,7 @@ public class PomodoroController : ControllerBase
     public async Task<ActionResult<ApiResponse<FocusSessionDto>>> StartSession([FromBody] StartSessionRequest request)
     {
         var userId = GetCurrentUserId();
-        var session = await _pomodoroService.StartSessionAsync(userId, request, HttpContext.RequestAborted);
+        var session = await _pomodoroService.StartSessionAsync(userId, request);
         return StatusCode(StatusCodes.Status201Created, ApiResponse<FocusSessionDto>.Ok(session, "Bắt đầu phiên tập trung thành công."));
     }
 
@@ -38,7 +38,7 @@ public class PomodoroController : ControllerBase
         [FromBody] CompleteSessionRequest request)
     {
         var userId = GetCurrentUserId();
-        var session = await _pomodoroService.CompleteSessionAsync(id, userId, request, HttpContext.RequestAborted);
+        var session = await _pomodoroService.CompleteSessionAsync(id, userId, request);
         return Ok(ApiResponse<FocusSessionDto>.Ok(session, "Hoàn thành phiên tập trung thành công."));
     }
 
@@ -49,7 +49,7 @@ public class PomodoroController : ControllerBase
         [FromBody] CancelSessionRequest request)
     {
         var userId = GetCurrentUserId();
-        var session = await _pomodoroService.CancelSessionAsync(id, userId, request, HttpContext.RequestAborted);
+        var session = await _pomodoroService.CancelSessionAsync(id, userId, request);
         return Ok(ApiResponse<FocusSessionDto>.Ok(session, "Đã hủy phiên tập trung."));
     }
 
@@ -60,7 +60,7 @@ public class PomodoroController : ControllerBase
         [FromQuery] DateTime? toUtc)
     {
         var userId = GetCurrentUserId();
-        var history = await _pomodoroService.GetHistoryAsync(userId, fromUtc, toUtc, HttpContext.RequestAborted);
+        var history = await _pomodoroService.GetHistoryAsync(userId, fromUtc, toUtc);
         return Ok(ApiResponse<List<FocusSessionDto>>.Ok(history, "Lấy lịch sử phiên tập trung thành công."));
     }
 
@@ -69,7 +69,7 @@ public class PomodoroController : ControllerBase
     public async Task<ActionResult<ApiResponse<PomodoroSummaryDto>>> GetSummary()
     {
         var userId = GetCurrentUserId();
-        var summary = await _pomodoroService.GetSummaryAsync(userId, HttpContext.RequestAborted);
+        var summary = await _pomodoroService.GetSummaryAsync(userId);
         return Ok(ApiResponse<PomodoroSummaryDto>.Ok(summary, "Lấy thống kê tập trung thành công."));
     }
 

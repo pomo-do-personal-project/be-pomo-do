@@ -12,9 +12,7 @@ public class PomodoroService : IPomodoroService
     private readonly IPomodoroRepository _pomodoroRepository;
     private readonly ITaskRepository _taskRepository;
 
-    /// <summary>Initializes a new instance of <see cref="PomodoroService"/> with explicit dependency injection.</summary>
-    /// <param name="pomodoroRepository">The pomodoro repository instance.</param>
-    /// <param name="taskRepository">The task repository instance.</param>
+    /// <summary>Initializes a new instance of <see cref="PomodoroService"/>.</summary>
     public PomodoroService(IPomodoroRepository pomodoroRepository, ITaskRepository taskRepository)
     {
         _pomodoroRepository = pomodoroRepository ?? throw new ArgumentNullException(nameof(pomodoroRepository));
@@ -22,11 +20,11 @@ public class PomodoroService : IPomodoroService
     }
 
     /// <inheritdoc/>
-    public async Task<FocusSessionDto> StartSessionAsync(Guid userId, StartSessionRequest request, CancellationToken ct = default)
+    public async Task<FocusSessionDto> StartSessionAsync(Guid userId, StartSessionRequest request)
     {
         if (request.TaskId.HasValue)
         {
-            var task = await _taskRepository.GetTaskByIdAsync(request.TaskId.Value, userId, includeDeleted: false, ct);
+            var task = await _taskRepository.GetTaskByIdAsync(request.TaskId.Value, userId, includeDeleted: false);
             if (task == null)
             {
                 throw new DomainException("Công việc gắn với phiên không tồn tại hoặc đã bị xóa.");
@@ -45,16 +43,16 @@ public class PomodoroService : IPomodoroService
             StartedAt = DateTime.UtcNow
         };
 
-        await _pomodoroRepository.AddSessionAsync(session, ct);
-        await _pomodoroRepository.SaveChangesAsync(ct);
+        await _pomodoroRepository.AddSessionAsync(session);
+        await _pomodoroRepository.SaveChangesAsync();
 
         return MapToDto(session);
     }
 
     /// <inheritdoc/>
-    public async Task<FocusSessionDto> CompleteSessionAsync(Guid sessionId, Guid userId, CompleteSessionRequest request, CancellationToken ct = default)
+    public async Task<FocusSessionDto> CompleteSessionAsync(Guid sessionId, Guid userId, CompleteSessionRequest request)
     {
-        var session = await _pomodoroRepository.GetSessionByIdAsync(sessionId, userId, ct);
+        var session = await _pomodoroRepository.GetSessionByIdAsync(sessionId, userId);
         if (session == null)
         {
             throw new DomainException("Phiên tập trung không tồn tại hoặc bạn không có quyền truy cập.");
@@ -79,18 +77,17 @@ public class PomodoroService : IPomodoroService
         session.CompletedAt = now;
         session.Note = request.Note?.Trim();
 
-
         // Cập nhật DailyStreak cho người dùng
-        await UpdateStreakAsync(userId, ct);
+        await UpdateStreakAsync(userId);
 
-        await _pomodoroRepository.SaveChangesAsync(ct);
+        await _pomodoroRepository.SaveChangesAsync();
         return MapToDto(session);
     }
 
     /// <inheritdoc/>
-    public async Task<FocusSessionDto> CancelSessionAsync(Guid sessionId, Guid userId, CancelSessionRequest request, CancellationToken ct = default)
+    public async Task<FocusSessionDto> CancelSessionAsync(Guid sessionId, Guid userId, CancelSessionRequest request)
     {
-        var session = await _pomodoroRepository.GetSessionByIdAsync(sessionId, userId, ct);
+        var session = await _pomodoroRepository.GetSessionByIdAsync(sessionId, userId);
         if (session == null)
         {
             throw new DomainException("Phiên tập trung không tồn tại hoặc bạn không có quyền truy cập.");
@@ -100,29 +97,29 @@ public class PomodoroService : IPomodoroService
         session.IsCompleted = false;
         session.CompletedAt = DateTime.UtcNow;
 
-        await _pomodoroRepository.SaveChangesAsync(ct);
+        await _pomodoroRepository.SaveChangesAsync();
         return MapToDto(session);
     }
 
     /// <inheritdoc/>
-    public async Task<List<FocusSessionDto>> GetHistoryAsync(Guid userId, DateTime? fromUtc = null, DateTime? toUtc = null, CancellationToken ct = default)
+    public async Task<List<FocusSessionDto>> GetHistoryAsync(Guid userId, DateTime? fromUtc = null, DateTime? toUtc = null)
     {
-        var sessions = await _pomodoroRepository.GetSessionHistoryAsync(userId, fromUtc, toUtc, ct);
+        var sessions = await _pomodoroRepository.GetSessionHistoryAsync(userId, fromUtc, toUtc);
         return sessions.Select(MapToDto).ToList();
     }
 
     /// <inheritdoc/>
-    public async Task<PomodoroSummaryDto> GetSummaryAsync(Guid userId, CancellationToken ct = default)
+    public async Task<PomodoroSummaryDto> GetSummaryAsync(Guid userId)
     {
         var todayUtcStart = DateTime.UtcNow.Date;
-        var todaySessions = await _pomodoroRepository.GetSessionHistoryAsync(userId, todayUtcStart, null, ct);
+        var todaySessions = await _pomodoroRepository.GetSessionHistoryAsync(userId, todayUtcStart, null);
 
         var completedToday = todaySessions.Where(s => s.IsCompleted).ToList();
         var pomosCount = completedToday.Count(s => s.Mode == FocusSessionMode.Pomo);
         var totalActualSeconds = completedToday.Sum(s => s.ActualSeconds);
         var totalOvertimeSeconds = completedToday.Sum(s => s.OvertimeSeconds);
 
-        var streak = await _pomodoroRepository.GetDailyStreakByUserIdAsync(userId, ct);
+        var streak = await _pomodoroRepository.GetDailyStreakByUserIdAsync(userId);
 
         int currentStreak = 0;
         int longestStreak = 0;
@@ -157,9 +154,9 @@ public class PomodoroService : IPomodoroService
     }
 
     // Thuật toán cập nhật DailyStreak
-    private async Task UpdateStreakAsync(Guid userId, CancellationToken ct)
+    private async Task UpdateStreakAsync(Guid userId)
     {
-        var streak = await _pomodoroRepository.GetDailyStreakByUserIdAsync(userId, ct);
+        var streak = await _pomodoroRepository.GetDailyStreakByUserIdAsync(userId);
         var today = DateOnly.FromDateTime(DateTime.UtcNow);
 
         if (streak == null)
@@ -171,7 +168,7 @@ public class PomodoroService : IPomodoroService
                 LongestStreak = 1,
                 LastActiveDate = today
             };
-            await _pomodoroRepository.AddDailyStreakAsync(streak, ct);
+            await _pomodoroRepository.AddDailyStreakAsync(streak);
             return;
         }
 

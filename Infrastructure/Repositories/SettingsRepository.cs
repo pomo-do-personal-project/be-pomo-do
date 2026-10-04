@@ -9,30 +9,32 @@ namespace be_pomo_do.Infrastructure.Repositories;
 public class SettingsRepository : ISettingsRepository
 {
     private readonly AppDbContext _context;
+    private readonly ICancellationTokenProvider _ctProvider;
+    private CancellationToken Ct => _ctProvider.Token;
 
-    /// <summary>Initializes a new instance of <see cref="SettingsRepository"/> with explicit dependency injection.</summary>
-    /// <param name="context">The application database context.</param>
-    public SettingsRepository(AppDbContext context)
+    /// <summary>Initializes a new instance of <see cref="SettingsRepository"/>.</summary>
+    public SettingsRepository(AppDbContext context, ICancellationTokenProvider cancellationTokenProvider)
     {
         _context = context ?? throw new ArgumentNullException(nameof(context));
+        _ctProvider = cancellationTokenProvider ?? throw new ArgumentNullException(nameof(cancellationTokenProvider));
     }
 
     /// <inheritdoc/>
-    public async Task<UserSettings?> GetByUserIdAsync(Guid userId, CancellationToken ct = default)
+    public async Task<UserSettings?> GetByUserIdAsync(Guid userId)
     {
         return await _context.UserSettings
-            .FirstOrDefaultAsync(s => s.UserId == userId, ct);
+            .FirstOrDefaultAsync(s => s.UserId == userId, Ct);
     }
 
     /// <inheritdoc/>
-    public async Task AddAsync(UserSettings settings, CancellationToken ct = default)
+    public async Task AddAsync(UserSettings settings)
     {
-        await _context.UserSettings.AddAsync(settings, ct);
+        await _context.UserSettings.AddAsync(settings, Ct);
     }
 
     /// <inheritdoc/>
-    public async Task SaveChangesAsync(CancellationToken ct = default)
+    public async Task SaveChangesAsync()
     {
-        await _context.SaveChangesAsync(ct);
+        await _context.SaveChangesAsync(Ct);
     }
 }

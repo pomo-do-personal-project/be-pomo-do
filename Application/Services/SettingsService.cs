@@ -9,17 +9,16 @@ public class SettingsService : ISettingsService
 {
     private readonly ISettingsRepository _settingsRepository;
 
-    /// <summary>Initializes a new instance of <see cref="SettingsService"/> with explicit dependency injection.</summary>
-    /// <param name="settingsRepository">The settings repository instance.</param>
+    /// <summary>Initializes a new instance of <see cref="SettingsService"/>.</summary>
     public SettingsService(ISettingsRepository settingsRepository)
     {
         _settingsRepository = settingsRepository ?? throw new ArgumentNullException(nameof(settingsRepository));
     }
 
     /// <inheritdoc/>
-    public async Task<UserSettingsDto> GetSettingsAsync(Guid userId, CancellationToken ct = default)
+    public async Task<UserSettingsDto> GetSettingsAsync(Guid userId)
     {
-        var settings = await _settingsRepository.GetByUserIdAsync(userId, ct);
+        var settings = await _settingsRepository.GetByUserIdAsync(userId);
         if (settings == null)
         {
             settings = new UserSettings
@@ -31,17 +30,17 @@ public class SettingsService : ISettingsService
                 AutoStartBreaks = false,
                 ThemeMode = "light"
             };
-            await _settingsRepository.AddAsync(settings, ct);
-            await _settingsRepository.SaveChangesAsync(ct);
+            await _settingsRepository.AddAsync(settings);
+            await _settingsRepository.SaveChangesAsync();
         }
 
         return MapToDto(settings);
     }
 
     /// <inheritdoc/>
-    public async Task<UserSettingsDto> UpdateSettingsAsync(Guid userId, UpdateUserSettingsRequest request, CancellationToken ct = default)
+    public async Task<UserSettingsDto> UpdateSettingsAsync(Guid userId, UpdateUserSettingsRequest request)
     {
-        var settings = await _settingsRepository.GetByUserIdAsync(userId, ct);
+        var settings = await _settingsRepository.GetByUserIdAsync(userId);
         if (settings == null)
         {
             settings = new UserSettings
@@ -53,7 +52,7 @@ public class SettingsService : ISettingsService
                 AutoStartBreaks = request.AutoStartBreaks,
                 ThemeMode = string.IsNullOrWhiteSpace(request.ThemeMode) ? "light" : request.ThemeMode.Trim().ToLower()
             };
-            await _settingsRepository.AddAsync(settings, ct);
+            await _settingsRepository.AddAsync(settings);
         }
         else
         {
@@ -67,7 +66,7 @@ public class SettingsService : ISettingsService
             }
         }
 
-        await _settingsRepository.SaveChangesAsync(ct);
+        await _settingsRepository.SaveChangesAsync();
         return MapToDto(settings);
     }
 

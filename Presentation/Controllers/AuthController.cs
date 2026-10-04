@@ -23,7 +23,7 @@ public class AuthController : ControllerBase
     [HttpPost("register")]
     public async Task<ActionResult<ApiResponse<AuthResponse>>> Register([FromBody] RegisterRequest request)
     {
-        var result = await _authService.RegisterAsync(request, HttpContext.RequestAborted);
+        var result = await _authService.RegisterAsync(request);
         SetTokenCookies(result.AccessToken, result.RefreshToken);
         var response = ApiResponse<AuthResponse>.Ok(result, "Đăng ký tài khoản thành công.");
         return StatusCode(StatusCodes.Status201Created, response);
@@ -33,7 +33,7 @@ public class AuthController : ControllerBase
     [HttpPost("login")]
     public async Task<ActionResult<ApiResponse<AuthResponse>>> Login([FromBody] LoginRequest request)
     {
-        var result = await _authService.LoginAsync(request, HttpContext.RequestAborted);
+        var result = await _authService.LoginAsync(request);
         SetTokenCookies(result.AccessToken, result.RefreshToken);
         var response = ApiResponse<AuthResponse>.Ok(result, "Đăng nhập thành công.");
         return Ok(response);
@@ -50,7 +50,7 @@ public class AuthController : ControllerBase
             return BadRequest(ApiResponse<AuthResponse>.Fail("Không tìm thấy refresh token trong cookie hoặc payload."));
         }
 
-        var result = await _authService.RefreshTokenAsync(refreshToken, HttpContext.RequestAborted);
+        var result = await _authService.RefreshTokenAsync(refreshToken);
         SetTokenCookies(result.AccessToken, result.RefreshToken);
         var response = ApiResponse<AuthResponse>.Ok(result, "Làm mới token thành công.");
         return Ok(response);
@@ -69,7 +69,7 @@ public class AuthController : ControllerBase
             return Unauthorized(ApiResponse<UserDto>.Fail("Không xác định được danh tính người dùng từ token."));
         }
 
-        var userDto = await _authService.GetMeAsync(userId, HttpContext.RequestAborted);
+        var userDto = await _authService.GetMeAsync(userId);
         return Ok(ApiResponse<UserDto>.Ok(userDto, "Lấy thông tin tài khoản thành công."));
     }
 
@@ -79,7 +79,7 @@ public class AuthController : ControllerBase
     {
         var refreshToken = Request.Cookies["refresh_token"] ?? request?.RefreshToken;
 
-        await _authService.LogoutAsync(refreshToken, HttpContext.RequestAborted);
+        await _authService.LogoutAsync(refreshToken);
         ClearTokenCookies();
 
         return Ok(ApiResponse<string>.Ok("Đăng xuất thành công."));

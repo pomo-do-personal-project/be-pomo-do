@@ -26,7 +26,7 @@ public class SettingsController : ControllerBase
     public async Task<ActionResult<ApiResponse<UserSettingsDto>>> GetSettings()
     {
         var userId = GetCurrentUserId();
-        var settings = await _settingsService.GetSettingsAsync(userId, HttpContext.RequestAborted);
+        var settings = await _settingsService.GetSettingsAsync(userId);
         return Ok(ApiResponse<UserSettingsDto>.Ok(settings, "Lấy cài đặt thành công."));
     }
 
@@ -35,7 +35,7 @@ public class SettingsController : ControllerBase
     public async Task<ActionResult<ApiResponse<UserSettingsDto>>> UpdateSettings([FromBody] UpdateUserSettingsRequest request)
     {
         var userId = GetCurrentUserId();
-        var settings = await _settingsService.UpdateSettingsAsync(userId, request, HttpContext.RequestAborted);
+        var settings = await _settingsService.UpdateSettingsAsync(userId, request);
         return Ok(ApiResponse<UserSettingsDto>.Ok(settings, "Cập nhật cài đặt thành công."));
     }
 
