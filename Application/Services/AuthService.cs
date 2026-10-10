@@ -14,6 +14,8 @@ public class AuthService : IAuthService
     private readonly IUserRepository _userRepository;
     private readonly IPasswordHasher _passwordHasher;
     private readonly IJwtTokenGenerator _jwtTokenGenerator;
+    private readonly IOtpService _otpService;
+    private readonly IEmailService _emailService;
     private readonly JwtOptions _jwtOptions;
 
     /// <summary>Initializes a new instance of <see cref="AuthService"/>.</summary>
@@ -21,11 +23,15 @@ public class AuthService : IAuthService
         IUserRepository userRepository,
         IPasswordHasher passwordHasher,
         IJwtTokenGenerator jwtTokenGenerator,
+        IOtpService otpService,
+        IEmailService emailService,
         IOptions<JwtOptions> jwtOptions)
     {
         _userRepository = userRepository ?? throw new ArgumentNullException(nameof(userRepository));
         _passwordHasher = passwordHasher ?? throw new ArgumentNullException(nameof(passwordHasher));
         _jwtTokenGenerator = jwtTokenGenerator ?? throw new ArgumentNullException(nameof(jwtTokenGenerator));
+        _otpService = otpService ?? throw new ArgumentNullException(nameof(otpService));
+        _emailService = emailService ?? throw new ArgumentNullException(nameof(emailService));
         _jwtOptions = jwtOptions?.Value ?? throw new ArgumentNullException(nameof(jwtOptions));
     }
 
@@ -34,7 +40,14 @@ public class AuthService : IAuthService
     {
         ArgumentNullException.ThrowIfNull(request);
 
-        // 1. Kiểm tra email đã tồn tại hay chưa
+        // 1. Xác thực mã OTP trước khi tiến hành đăng ký
+        var isOtpValid = await _otpService.VerifyOtpAsync(request.Email, request.OtpCode, OtpPurpose.Register);
+        if (!isOtpValid)
+        {
+            throw new DomainException("Mã OTP không chính xác hoặc đã hết hạn.");
+        }
+
+        // 2. Kiểm tra email đã tồn tại hay chưa
         var emailExists = await _userRepository.ExistsByEmailAsync(request.Email);
         if (emailExists)
         {
@@ -264,5 +277,75 @@ public class AuthService : IAuthService
             token.IsRevoked = true;
             await _userRepository.SaveChangesAsync();
         }
+    }
+
+    /// <inheritdoc/>
+    public async Task SendOtpAsync(SendOtpRequest request)
+    {
+        ArgumentNullException.ThrowIfNull(request);
+
+        var normalizedEmail = request.Email.Trim().ToLowerInvariant();
+
+        if (request.Purpose == OtpPurpose.Register)
+        {
+            var emailExists = await _userRepository.ExistsByEmailAsync(normalizedEmail);
+            if (emailExists)
+            {
+                throw new DomainException("Email này đã được sử dụng. Vui lòng đăng nhập hoặc chọn Quên mật khẩu.");
+            }
+        }
+        else if (request.Purpose == OtpPurpose.ForgotPassword)
+        {
+            var user = await _userRepository.GetByEmailAsync(normalizedEmail);
+            if (user == null)
+            {
+                throw new DomainException("Không tìm thấy tài khoản tương ứng với email này.");
+            }
+        }
+
+        var cooldown = await _otpService.GetRemainingCooldownSecondsAsync(normalizedEmail, request.Purpose);
+        if (cooldown > 0)
+        {
+            throw new DomainException($"Vui lòng chờ {cooldown} giây trước khi yêu cầu gửi lại mã OTP mới.");
+        }
+
+        var otpCode = await _otpService.GenerateAndSaveOtpAsync(normalizedEmail, request.Purpose);
+        await _emailService.SendOtpEmailAsync(normalizedEmail, otpCode, request.Purpose);
+    }
+
+    /// <inheritdoc/>
+    public async Task ForgotPasswordAsync(ForgotPasswordRequest request)
+    {
+        ArgumentNullException.ThrowIfNull(request);
+        await SendOtpAsync(new SendOtpRequest(request.Email, OtpPurpose.ForgotPassword));
+    }
+
+    /// <inheritdoc/>
+    public async Task ResetPasswordAsync(ResetPasswordRequest request)
+    {
+        ArgumentNullException.ThrowIfNull(request);
+
+        var normalizedEmail = request.Email.Trim().ToLowerInvariant();
+        var user = await _userRepository.GetByEmailAsync(normalizedEmail);
+        if (user == null)
+        {
+            throw new DomainException("Không tìm thấy tài khoản tương ứng với email này.");
+        }
+
+        var isOtpValid = await _otpService.VerifyOtpAsync(normalizedEmail, request.OtpCode, OtpPurpose.ForgotPassword);
+        if (!isOtpValid)
+        {
+            throw new DomainException("Mã OTP không chính xác hoặc đã hết hạn.");
+        }
+
+        user.PasswordHash = _passwordHasher.HashPassword(request.NewPassword);
+
+        // Thu hồi toàn bộ Refresh Tokens cũ để đảm bảo an toàn sau khi đổi mật khẩu
+        foreach (var rt in user.RefreshTokens.Where(t => !t.IsRevoked))
+        {
+            rt.IsRevoked = true;
+        }
+
+        await _userRepository.SaveChangesAsync();
     }
 }

@@ -1,13 +1,49 @@
 @be_pomo_do_HostAddress = http://localhost:5267
 
-### 1. Đăng ký tài khoản mới: Nguyễn Văn An (POST /api/auth/register)
+### 0. Gửi mã OTP Đăng ký tài khoản mới (POST /api/auth/otp/send)
+# Purpose: 1 (Register), 2 (ForgotPassword)
+POST {{be_pomo_do_HostAddress}}/api/auth/otp/send
+Content-Type: application/json
+
+{
+  "email": "nguyenvanan@gmail.com",
+  "purpose": 1
+}
+
+###
+
+### 1. Đăng ký tài khoản mới kèm OTP đã nhận (POST /api/auth/register)
+# Lưu ý: Lấy mã OTP 6 số từ hộp thư Gmail hoặc xem trực tiếp trên Terminal console của Backend
 POST {{be_pomo_do_HostAddress}}/api/auth/register
 Content-Type: application/json
 
 {
   "email": "nguyenvanan@gmail.com",
   "password": "Password123@",
-  "displayName": "Nguyễn Văn An"
+  "displayName": "Nguyễn Văn An",
+  "otpCode": "123456"
+}
+
+###
+
+### 1.1. Yêu cầu mã OTP Quên mật khẩu (POST /api/auth/forgot-password)
+POST {{be_pomo_do_HostAddress}}/api/auth/forgot-password
+Content-Type: application/json
+
+{
+  "email": "nguyenvanan@gmail.com"
+}
+
+###
+
+### 1.2. Đặt lại mật khẩu mới bằng OTP (POST /api/auth/reset-password)
+POST {{be_pomo_do_HostAddress}}/api/auth/reset-password
+Content-Type: application/json
+
+{
+  "email": "nguyenvanan@gmail.com",
+  "otpCode": "123456",
+  "newPassword": "NewPassword123@"
 }
 
 ###

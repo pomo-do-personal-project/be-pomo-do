@@ -2,7 +2,7 @@ using System.ComponentModel.DataAnnotations;
 
 namespace be_pomo_do.Application.DTOs.Auth;
 
-// Payload required to register a new user
+/// <summary>Request payload required to register a new user account with an OTP verification code.</summary>
 public record RegisterRequest(
     [Required(ErrorMessage = "Email không được để trống")]
     [EmailAddress(ErrorMessage = "Định dạng email không hợp lệ")]
@@ -14,5 +14,9 @@ public record RegisterRequest(
 
     [Required(ErrorMessage = "Tên hiển thị không được để trống")]
     [MaxLength(100, ErrorMessage = "Tên hiển thị tối đa 100 ký tự")]
-    string DisplayName
+    string DisplayName,
+
+    [Required(ErrorMessage = "Mã OTP không được để trống")]
+    [RegularExpression(@"^\d{6}$", ErrorMessage = "Mã OTP phải gồm đúng 6 chữ số")]
+    string OtpCode
 );

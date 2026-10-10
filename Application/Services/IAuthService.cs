@@ -17,6 +17,15 @@ public interface IAuthService
     /// <summary>Retrieves user profile information for the authenticated user identifier.</summary>
     Task<UserDto> GetMeAsync(Guid userId);
 
+    /// <summary>Generates and dispatches an OTP code to verify email address for registration or password recovery.</summary>
+    Task SendOtpAsync(SendOtpRequest request);
+
+    /// <summary>Initiates the forgot-password flow by verifying account existence and dispatching a recovery OTP.</summary>
+    Task ForgotPasswordAsync(ForgotPasswordRequest request);
+
+    /// <summary>Resets a user's password after verifying the submitted OTP and revoking existing refresh tokens.</summary>
+    Task ResetPasswordAsync(ResetPasswordRequest request);
+
     /// <summary>Revokes the specified refresh token in the persistence store to terminate the session.</summary>
     Task LogoutAsync(string? refreshTokenString);
 }

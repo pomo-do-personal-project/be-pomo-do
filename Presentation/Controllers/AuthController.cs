@@ -19,7 +19,19 @@ public class AuthController : ControllerBase
         _authService = authService ?? throw new ArgumentNullException(nameof(authService));
     }
 
-    /// <summary>Registers a new user account and returns an authentication payload with initial tokens.</summary>
+    /// <summary>Dispatches an OTP verification code to the requested email for registration or password recovery.</summary>
+    /// <param name="request">The OTP dispatch request parameters.</param>
+    /// <returns>An API response indicating dispatch status.</returns>
+    [HttpPost("otp/send")]
+    public async Task<ActionResult<ApiResponse<string>>> SendOtp([FromBody] SendOtpRequest request)
+    {
+        await _authService.SendOtpAsync(request);
+        return Ok(ApiResponse<string>.Ok("Mã OTP đã được gửi về email của bạn. Mã có hiệu lực trong 5 phút."));
+    }
+
+    /// <summary>Registers a new user account with verified OTP code and returns an authentication payload.</summary>
+    /// <param name="request">The user registration payload including the verified OTP.</param>
+    /// <returns>An API response containing tokens and created user profile.</returns>
     [HttpPost("register")]
     public async Task<ActionResult<ApiResponse<AuthResponse>>> Register([FromBody] RegisterRequest request)
     {
@@ -27,6 +39,26 @@ public class AuthController : ControllerBase
         SetTokenCookies(result.AccessToken, result.RefreshToken);
         var response = ApiResponse<AuthResponse>.Ok(result, "Đăng ký tài khoản thành công.");
         return StatusCode(StatusCodes.Status201Created, response);
+    }
+
+    /// <summary>Initiates the forgot-password flow by verifying account existence and dispatching a recovery OTP.</summary>
+    /// <param name="request">The forgot password request containing the account email.</param>
+    /// <returns>An API response confirming recovery OTP dispatch.</returns>
+    [HttpPost("forgot-password")]
+    public async Task<ActionResult<ApiResponse<string>>> ForgotPassword([FromBody] ForgotPasswordRequest request)
+    {
+        await _authService.ForgotPasswordAsync(request);
+        return Ok(ApiResponse<string>.Ok("Mã xác thực đã được gửi về email của bạn."));
+    }
+
+    /// <summary>Verifies the recovery OTP and updates the user account password.</summary>
+    /// <param name="request">The password reset request containing email, OTP code, and new password.</param>
+    /// <returns>An API response confirming the password has been reset.</returns>
+    [HttpPost("reset-password")]
+    public async Task<ActionResult<ApiResponse<string>>> ResetPassword([FromBody] ResetPasswordRequest request)
+    {
+        await _authService.ResetPasswordAsync(request);
+        return Ok(ApiResponse<string>.Ok("Đặt lại mật khẩu thành công. Vui lòng đăng nhập bằng mật khẩu mới."));
     }
 
     /// <summary>Authenticates user credentials and issues a fresh access and refresh token pair.</summary>
