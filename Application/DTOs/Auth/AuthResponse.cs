@@ -1,6 +1,6 @@
 namespace be_pomo_do.Application.DTOs.Auth;
 
-/// <summary>Represents the data transfer object returned upon successful authentication or token rotation.</summary>
+// DTO trả về sau khi đăng nhập hoặc làm mới token thành công
 public record AuthResponse(
     UserDto User,
     string AccessToken,

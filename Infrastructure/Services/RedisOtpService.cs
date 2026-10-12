@@ -7,118 +7,270 @@ using StackExchange.Redis;
 
 namespace be_pomo_do.Infrastructure.Services;
 
-/// <summary>Redis implementation of <see cref="IOtpService"/> handling atomic OTP storage, cooldown enforcement, and brute-force mitigation.</summary>
+// Quản lý lưu trữ OTP và Reset Token trên Redis (hỗ trợ fallback In-Memory)
 public class RedisOtpService : IOtpService
 {
     private static readonly TimeSpan OtpLifetime = TimeSpan.FromMinutes(5);
+    private static readonly TimeSpan ResetTokenLifetime = TimeSpan.FromMinutes(15);
     private static readonly TimeSpan CooldownDuration = TimeSpan.FromSeconds(60);
     private const int MaxAttempts = 5;
 
     private readonly IConnectionMultiplexer _redis;
+    private readonly InMemoryOtpService _fallback;
     private readonly ILogger<RedisOtpService> _logger;
 
-    /// <summary>Initializes a new instance of the <see cref="RedisOtpService"/> class.</summary>
-    /// <param name="redis">The Redis connection multiplexer instance.</param>
-    /// <param name="logger">The logger instance.</param>
-    public RedisOtpService(IConnectionMultiplexer redis, ILogger<RedisOtpService> logger)
+    // Khởi tạo RedisOtpService với Redis connection và fallback store
+    public RedisOtpService(
+        IConnectionMultiplexer redis,
+        InMemoryOtpService fallback,
+        ILogger<RedisOtpService> logger)
     {
         _redis = redis ?? throw new ArgumentNullException(nameof(redis));
+        _fallback = fallback ?? throw new ArgumentNullException(nameof(fallback));
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
     }
 
     private IDatabase Db => _redis.GetDatabase();
 
-    /// <inheritdoc/>
-    public async Task<string> GenerateAndSaveOtpAsync(string email, OtpPurpose purpose, CancellationToken ct = default)
+    // Sinh và lưu mã OTP 6 số đăng ký vào Redis
+    public async Task<string> GenerateAndSaveOtpAsync(string email, OtpPurpose purpose = OtpPurpose.Register, CancellationToken ct = default)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(email);
 
         var normalizedEmail = email.Trim().ToLowerInvariant();
-        var otpKey = GetOtpKey(normalizedEmail, purpose);
-        var cooldownKey = GetCooldownKey(normalizedEmail, purpose);
-        var attemptsKey = GetAttemptsKey(normalizedEmail, purpose);
 
-        // Kiểm tra cooldown
-        var remainingCooldown = await GetRemainingCooldownSecondsAsync(normalizedEmail, purpose, ct);
-        if (remainingCooldown > 0)
+        try
         {
-            throw new DomainException($"Vui lòng chờ {remainingCooldown} giây trước khi yêu cầu mã OTP mới.");
+            var otpKey = GetOtpKey(normalizedEmail, purpose);
+            var cooldownKey = GetCooldownKey(normalizedEmail, purpose);
+            var attemptsKey = GetAttemptsKey(normalizedEmail, purpose);
+
+            var remainingCooldown = await GetRemainingCooldownSecondsAsync(normalizedEmail, purpose, ct);
+            if (remainingCooldown > 0)
+            {
+                throw new DomainException($"Vui lòng chờ {remainingCooldown} giây trước khi yêu cầu gửi lại.");
+            }
+
+            var otpCode = RandomNumberGenerator.GetInt32(100000, 1000000).ToString();
+
+            var db = Db;
+            await db.StringSetAsync(otpKey, otpCode, OtpLifetime);
+            await db.StringSetAsync(cooldownKey, "1", CooldownDuration);
+            await db.KeyDeleteAsync(attemptsKey);
+
+            _logger.LogInformation("Saved Register OTP for {Email} into Redis with TTL 5m.", normalizedEmail);
+            return otpCode;
         }
-
-        // Sinh mã 6 chữ số ngẫu nhiên chuẩn mã hóa an toàn (Cryptographically secure)
-        var otpCode = RandomNumberGenerator.GetInt32(100000, 1000000).ToString();
-
-        // Lưu vào Redis: OTP (5 phút), Cooldown (60s), và xóa đếm lỗi cũ nếu có
-        var db = Db;
-        await db.StringSetAsync(otpKey, otpCode, OtpLifetime);
-        await db.StringSetAsync(cooldownKey, "1", CooldownDuration);
-        await db.KeyDeleteAsync(attemptsKey);
-
-        _logger.LogInformation("Saved OTP for {Email} ({Purpose}) with TTL {Ttl}s into Redis.", normalizedEmail, purpose, OtpLifetime.TotalSeconds);
-        return otpCode;
+        catch (DomainException)
+        {
+            throw;
+        }
+        catch (Exception ex) when (ex is RedisException or TimeoutException)
+        {
+            _logger.LogWarning(ex, "Redis connection failed. Falling back to In-Memory OTP store.");
+            return await _fallback.GenerateAndSaveOtpAsync(email, purpose, ct);
+        }
     }
 
-    /// <inheritdoc/>
-    public async Task<bool> VerifyOtpAsync(string email, string otpCode, OtpPurpose purpose, CancellationToken ct = default)
+    // Xác thực mã OTP 6 số đăng ký từ Redis
+    public async Task<bool> VerifyOtpAsync(string email, string otpCode, OtpPurpose purpose = OtpPurpose.Register, CancellationToken ct = default)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(email);
         ArgumentException.ThrowIfNullOrWhiteSpace(otpCode);
 
         var normalizedEmail = email.Trim().ToLowerInvariant();
-        var otpKey = GetOtpKey(normalizedEmail, purpose);
-        var attemptsKey = GetAttemptsKey(normalizedEmail, purpose);
 
-        var db = Db;
-        var storedOtp = await db.StringGetAsync(otpKey);
-        if (storedOtp.IsNullOrEmpty)
+        try
         {
-            throw new DomainException("Mã OTP không tồn tại hoặc đã hết hạn.");
-        }
+            var otpKey = GetOtpKey(normalizedEmail, purpose);
+            var attemptsKey = GetAttemptsKey(normalizedEmail, purpose);
 
-        // Tăng số lần thử nhập
-        var attempts = await db.StringIncrementAsync(attemptsKey);
-        if (attempts == 1)
-        {
-            await db.KeyExpireAsync(attemptsKey, OtpLifetime);
-        }
+            var db = Db;
+            var storedOtp = await db.StringGetAsync(otpKey);
+            if (storedOtp.IsNullOrEmpty)
+            {
+                return await _fallback.VerifyOtpAsync(email, otpCode, purpose, ct);
+            }
 
-        if (attempts > MaxAttempts)
-        {
-            // Hủy luôn mã OTP khi vượt quá 5 lần nhập sai
+            var attempts = await db.StringIncrementAsync(attemptsKey);
+            if (attempts == 1)
+            {
+                await db.KeyExpireAsync(attemptsKey, OtpLifetime);
+            }
+
+            if (attempts > MaxAttempts)
+            {
+                await db.KeyDeleteAsync(otpKey);
+                await db.KeyDeleteAsync(attemptsKey);
+                throw new DomainException("Bạn đã nhập sai mã OTP quá 5 lần. Mã xác thực đã bị hủy vì lý do an toàn. Vui lòng yêu cầu mã mới.");
+            }
+
+            if (storedOtp.ToString() != otpCode.Trim())
+            {
+                var remaining = MaxAttempts - (int)attempts;
+                throw new DomainException($"Mã OTP không chính xác. Bạn còn {remaining} lần thử.");
+            }
+
             await db.KeyDeleteAsync(otpKey);
             await db.KeyDeleteAsync(attemptsKey);
-            throw new DomainException("Bạn đã nhập sai mã OTP quá 5 lần. Mã xác thực đã bị hủy vì lý do an toàn. Vui lòng yêu cầu mã mới.");
-        }
 
-        if (storedOtp.ToString() != otpCode.Trim())
+            _logger.LogInformation("Successfully verified and consumed Register OTP for {Email}.", normalizedEmail);
+            return true;
+        }
+        catch (DomainException)
         {
-            var remaining = MaxAttempts - (int)attempts;
-            throw new DomainException($"Mã OTP không chính xác. Bạn còn {remaining} lần thử.");
+            throw;
         }
-
-        // Xác thực thành công: Xóa mã OTP và số lần thử khỏi Redis (Single-use)
-        await db.KeyDeleteAsync(otpKey);
-        await db.KeyDeleteAsync(attemptsKey);
-
-        _logger.LogInformation("Successfully verified and consumed OTP for {Email} ({Purpose}).", normalizedEmail, purpose);
-        return true;
+        catch (Exception ex) when (ex is RedisException or TimeoutException)
+        {
+            _logger.LogWarning(ex, "Redis connection failed. Falling back to In-Memory OTP verification.");
+            return await _fallback.VerifyOtpAsync(email, otpCode, purpose, ct);
+        }
     }
 
-    /// <inheritdoc/>
-    public async Task<int> GetRemainingCooldownSecondsAsync(string email, OtpPurpose purpose, CancellationToken ct = default)
+    // Lấy thời gian cooldown còn lại của OTP
+    public async Task<int> GetRemainingCooldownSecondsAsync(string email, OtpPurpose purpose = OtpPurpose.Register, CancellationToken ct = default)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(email);
 
         var normalizedEmail = email.Trim().ToLowerInvariant();
-        var cooldownKey = GetCooldownKey(normalizedEmail, purpose);
 
-        var ttl = await Db.KeyTimeToLiveAsync(cooldownKey);
-        if (ttl.HasValue && ttl.Value.TotalSeconds > 0)
+        try
         {
-            return (int)Math.Ceiling(ttl.Value.TotalSeconds);
-        }
+            var cooldownKey = GetCooldownKey(normalizedEmail, purpose);
+            var ttl = await Db.KeyTimeToLiveAsync(cooldownKey);
+            if (ttl.HasValue && ttl.Value.TotalSeconds > 0)
+            {
+                return (int)Math.Ceiling(ttl.Value.TotalSeconds);
+            }
 
-        return 0;
+            return 0;
+        }
+        catch (Exception ex) when (ex is RedisException or TimeoutException)
+        {
+            _logger.LogWarning(ex, "Redis connection failed. Falling back to In-Memory cooldown check.");
+            return await _fallback.GetRemainingCooldownSecondsAsync(email, purpose, ct);
+        }
+    }
+
+    // Sinh và lưu token 64 ký tự đặt lại mật khẩu vào Redis (hạn 15 phút, cooldown 60s)
+    public async Task<string> GeneratePasswordResetTokenAsync(string email, CancellationToken ct = default)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(email);
+
+        var normalizedEmail = email.Trim().ToLowerInvariant();
+
+        try
+        {
+            var tokenKey = GetPasswordResetTokenKey(normalizedEmail);
+            var cooldownKey = GetPasswordResetCooldownKey(normalizedEmail);
+            var attemptsKey = GetPasswordResetAttemptsKey(normalizedEmail);
+
+            var remainingCooldown = await GetPasswordResetCooldownSecondsAsync(normalizedEmail, ct);
+            if (remainingCooldown > 0)
+            {
+                throw new DomainException($"Vui lòng chờ {remainingCooldown} giây trước khi yêu cầu gửi lại email xác nhận.");
+            }
+
+            var token = Convert.ToHexString(RandomNumberGenerator.GetBytes(32)).ToLowerInvariant();
+
+            var db = Db;
+            await db.StringSetAsync(tokenKey, token, ResetTokenLifetime);
+            await db.StringSetAsync(cooldownKey, "1", CooldownDuration);
+            await db.KeyDeleteAsync(attemptsKey);
+
+            _logger.LogInformation("Saved Password Reset Token for {Email} into Redis with TTL 15m.", normalizedEmail);
+            return token;
+        }
+        catch (DomainException)
+        {
+            throw;
+        }
+        catch (Exception ex) when (ex is RedisException or TimeoutException)
+        {
+            _logger.LogWarning(ex, "Redis connection failed. Falling back to In-Memory Password Reset Token store.");
+            return await _fallback.GeneratePasswordResetTokenAsync(email, ct);
+        }
+    }
+
+    // Xác thực token đặt lại mật khẩu từ link email
+    public async Task<bool> VerifyPasswordResetTokenAsync(string email, string token, CancellationToken ct = default)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(email);
+        ArgumentException.ThrowIfNullOrWhiteSpace(token);
+
+        var normalizedEmail = email.Trim().ToLowerInvariant();
+
+        try
+        {
+            var tokenKey = GetPasswordResetTokenKey(normalizedEmail);
+            var attemptsKey = GetPasswordResetAttemptsKey(normalizedEmail);
+
+            var db = Db;
+            var storedToken = await db.StringGetAsync(tokenKey);
+            if (storedToken.IsNullOrEmpty)
+            {
+                return await _fallback.VerifyPasswordResetTokenAsync(email, token, ct);
+            }
+
+            var attempts = await db.StringIncrementAsync(attemptsKey);
+            if (attempts == 1)
+            {
+                await db.KeyExpireAsync(attemptsKey, ResetTokenLifetime);
+            }
+
+            if (attempts > MaxAttempts)
+            {
+                await db.KeyDeleteAsync(tokenKey);
+                await db.KeyDeleteAsync(attemptsKey);
+                throw new DomainException("Liên kết xác nhận đã bị vô hiệu hóa vì nhập sai quá nhiều lần. Vui lòng yêu cầu liên kết mới.");
+            }
+
+            if (storedToken.ToString() != token.Trim())
+            {
+                throw new DomainException("Mã xác nhận đặt lại mật khẩu không chính xác.");
+            }
+
+            await db.KeyDeleteAsync(tokenKey);
+            await db.KeyDeleteAsync(attemptsKey);
+
+            _logger.LogInformation("Successfully verified and consumed Password Reset Token for {Email}.", normalizedEmail);
+            return true;
+        }
+        catch (DomainException)
+        {
+            throw;
+        }
+        catch (Exception ex) when (ex is RedisException or TimeoutException)
+        {
+            _logger.LogWarning(ex, "Redis connection failed. Falling back to In-Memory Password Reset Token verification.");
+            return await _fallback.VerifyPasswordResetTokenAsync(email, token, ct);
+        }
+    }
+
+    // Lấy thời gian cooldown còn lại của link đặt lại mật khẩu
+    public async Task<int> GetPasswordResetCooldownSecondsAsync(string email, CancellationToken ct = default)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(email);
+
+        var normalizedEmail = email.Trim().ToLowerInvariant();
+
+        try
+        {
+            var cooldownKey = GetPasswordResetCooldownKey(normalizedEmail);
+            var ttl = await Db.KeyTimeToLiveAsync(cooldownKey);
+            if (ttl.HasValue && ttl.Value.TotalSeconds > 0)
+            {
+                return (int)Math.Ceiling(ttl.Value.TotalSeconds);
+            }
+
+            return 0;
+        }
+        catch (Exception ex) when (ex is RedisException or TimeoutException)
+        {
+            _logger.LogWarning(ex, "Redis connection failed. Falling back to In-Memory Password Reset cooldown check.");
+            return await _fallback.GetPasswordResetCooldownSecondsAsync(email, ct);
+        }
     }
 
     private static string GetOtpKey(string email, OtpPurpose purpose) =>
@@ -129,4 +281,13 @@ public class RedisOtpService : IOtpService
 
     private static string GetAttemptsKey(string email, OtpPurpose purpose) =>
         $"otp:attempts:{purpose.ToString().ToLowerInvariant()}:{email}";
+
+    private static string GetPasswordResetTokenKey(string email) =>
+        $"password_reset:token:{email}";
+
+    private static string GetPasswordResetCooldownKey(string email) =>
+        $"password_reset:cooldown:{email}";
+
+    private static string GetPasswordResetAttemptsKey(string email) =>
+        $"password_reset:attempts:{email}";
 }

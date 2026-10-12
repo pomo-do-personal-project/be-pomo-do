@@ -35,8 +35,8 @@ public class AuthService : IAuthService
         _jwtOptions = jwtOptions?.Value ?? throw new ArgumentNullException(nameof(jwtOptions));
     }
 
-    /// <inheritdoc/>
-    public async Task<AuthResponse> RegisterAsync(RegisterRequest request)
+    // Đăng ký tài khoản mới kèm xác thực mã OTP
+    public async Task<UserDto> RegisterAsync(RegisterRequest request)
     {
         ArgumentNullException.ThrowIfNull(request);
 
@@ -54,10 +54,10 @@ public class AuthService : IAuthService
             throw new DomainException("Email này đã được sử dụng. Vui lòng chọn email khác.");
         }
 
-        // 2. Băm mật khẩu bằng BCrypt
+        // 3. Băm mật khẩu bằng BCrypt
         var passwordHash = _passwordHasher.HashPassword(request.Password);
 
-        // 3. Khởi tạo User Entity
+        // 4. Khởi tạo User Entity
         var user = new User
         {
             Email = request.Email.Trim().ToLowerInvariant(),
@@ -67,7 +67,7 @@ public class AuthService : IAuthService
             CreatedAt = DateTime.UtcNow
         };
 
-        // 4. Khởi tạo UserSettings mặc định (Focus: 25, ShortBreak: 5, LongBreak: 15)
+        // 5. Khởi tạo UserSettings mặc định (Focus: 25, ShortBreak: 5, LongBreak: 15)
         user.Settings = new UserSettings
         {
             UserId = user.Id,
@@ -78,7 +78,7 @@ public class AuthService : IAuthService
             ThemeMode = "light"
         };
 
-        // 5. Khởi tạo DailyStreak mặc định
+        // 6. Khởi tạo DailyStreak mặc định
         user.Streak = new DailyStreak
         {
             UserId = user.Id,
@@ -87,44 +87,21 @@ public class AuthService : IAuthService
             LastActiveDate = null
         };
 
-        // 6. Sinh Tokens
-        var accessToken = _jwtTokenGenerator.GenerateAccessToken(user);
-        var refreshTokenString = _jwtTokenGenerator.GenerateRefreshToken();
-
-        // 7. Tạo RefreshToken Entity và gắn vào User
-        var refreshToken = new RefreshToken
-        {
-            UserId = user.Id,
-            Token = refreshTokenString,
-            ExpiresAt = DateTime.UtcNow.AddDays(_jwtOptions.RefreshTokenExpirationDays),
-            CreatedAt = DateTime.UtcNow,
-            IsRevoked = false
-        };
-
-        user.RefreshTokens.Add(refreshToken);
-
-        // 8. Lưu đồng thời toàn bộ vào Database qua UserRepository
+        // 7. Lưu User vào Database qua UserRepository (Không cấp tokens khi đăng ký, yêu cầu đăng nhập)
         await _userRepository.AddAsync(user);
         await _userRepository.SaveChangesAsync();
 
-        // 9. Trả về AuthResponse
-        var userDto = new UserDto(
+        // 8. Trả về thông tin User profile vừa tạo
+        return new UserDto(
             user.Id,
             user.Email,
             user.DisplayName,
             user.AvatarUrl,
             user.CreatedAt
         );
-
-        return new AuthResponse(
-            User: userDto,
-            AccessToken: accessToken,
-            RefreshToken: refreshTokenString,
-            ExpiresInSeconds: _jwtOptions.AccessTokenExpirationMinutes * 60
-        );
     }
 
-    /// <inheritdoc/>
+    // Đăng nhập tài khoản và cấp cặp token JWT
     public async Task<AuthResponse> LoginAsync(LoginRequest request)
     {
         // 1. Tìm người dùng theo Email
@@ -174,7 +151,7 @@ public class AuthService : IAuthService
         );
     }
 
-    /// <inheritdoc/>
+    // Làm mới access token bằng refresh token (Token Rotation)
     public async Task<AuthResponse> RefreshTokenAsync(string refreshTokenString)
     {
         if (string.IsNullOrWhiteSpace(refreshTokenString))
@@ -245,7 +222,7 @@ public class AuthService : IAuthService
         );
     }
 
-    /// <inheritdoc/>
+    // Lấy thông tin tài khoản của người dùng hiện tại
     public async Task<UserDto> GetMeAsync(Guid userId)
     {
         var user = await _userRepository.GetByIdAsync(userId);
@@ -263,7 +240,7 @@ public class AuthService : IAuthService
         );
     }
 
-    /// <inheritdoc/>
+    // Đăng xuất và thu hồi refresh token
     public async Task LogoutAsync(string? refreshTokenString)
     {
         if (string.IsNullOrWhiteSpace(refreshTokenString))
@@ -279,28 +256,17 @@ public class AuthService : IAuthService
         }
     }
 
-    /// <inheritdoc/>
+    // Gửi mã OTP 6 số xác thực đăng ký tài khoản
     public async Task SendOtpAsync(SendOtpRequest request)
     {
         ArgumentNullException.ThrowIfNull(request);
 
         var normalizedEmail = request.Email.Trim().ToLowerInvariant();
 
-        if (request.Purpose == OtpPurpose.Register)
+        var emailExists = await _userRepository.ExistsByEmailAsync(normalizedEmail);
+        if (emailExists)
         {
-            var emailExists = await _userRepository.ExistsByEmailAsync(normalizedEmail);
-            if (emailExists)
-            {
-                throw new DomainException("Email này đã được sử dụng. Vui lòng đăng nhập hoặc chọn Quên mật khẩu.");
-            }
-        }
-        else if (request.Purpose == OtpPurpose.ForgotPassword)
-        {
-            var user = await _userRepository.GetByEmailAsync(normalizedEmail);
-            if (user == null)
-            {
-                throw new DomainException("Không tìm thấy tài khoản tương ứng với email này.");
-            }
+            throw new DomainException("Email này đã được sử dụng. Vui lòng đăng nhập hoặc chọn Quên mật khẩu.");
         }
 
         var cooldown = await _otpService.GetRemainingCooldownSecondsAsync(normalizedEmail, request.Purpose);
@@ -310,17 +276,32 @@ public class AuthService : IAuthService
         }
 
         var otpCode = await _otpService.GenerateAndSaveOtpAsync(normalizedEmail, request.Purpose);
-        await _emailService.SendOtpEmailAsync(normalizedEmail, otpCode, request.Purpose);
+        await _emailService.SendOtpEmailAsync(normalizedEmail, otpCode);
     }
 
-    /// <inheritdoc/>
+    // Gửi email chứa nút bấm xác nhận đặt lại mật khẩu
     public async Task ForgotPasswordAsync(ForgotPasswordRequest request)
     {
         ArgumentNullException.ThrowIfNull(request);
-        await SendOtpAsync(new SendOtpRequest(request.Email, OtpPurpose.ForgotPassword));
+
+        var normalizedEmail = request.Email.Trim().ToLowerInvariant();
+        var user = await _userRepository.GetByEmailAsync(normalizedEmail);
+        if (user == null)
+        {
+            throw new DomainException("Không tìm thấy tài khoản tương ứng với email này.");
+        }
+
+        var cooldown = await _otpService.GetPasswordResetCooldownSecondsAsync(normalizedEmail);
+        if (cooldown > 0)
+        {
+            throw new DomainException($"Vui lòng chờ {cooldown} giây trước khi yêu cầu gửi lại email xác nhận.");
+        }
+
+        var resetToken = await _otpService.GeneratePasswordResetTokenAsync(normalizedEmail);
+        await _emailService.SendPasswordResetEmailAsync(normalizedEmail, resetToken);
     }
 
-    /// <inheritdoc/>
+    // Đặt lại mật khẩu mới bằng token từ link email
     public async Task ResetPasswordAsync(ResetPasswordRequest request)
     {
         ArgumentNullException.ThrowIfNull(request);
@@ -332,10 +313,10 @@ public class AuthService : IAuthService
             throw new DomainException("Không tìm thấy tài khoản tương ứng với email này.");
         }
 
-        var isOtpValid = await _otpService.VerifyOtpAsync(normalizedEmail, request.OtpCode, OtpPurpose.ForgotPassword);
-        if (!isOtpValid)
+        var isTokenValid = await _otpService.VerifyPasswordResetTokenAsync(normalizedEmail, request.Token);
+        if (!isTokenValid)
         {
-            throw new DomainException("Mã OTP không chính xác hoặc đã hết hạn.");
+            throw new DomainException("Liên kết hoặc mã xác nhận đặt lại mật khẩu không chính xác hoặc đã hết hạn.");
         }
 
         user.PasswordHash = _passwordHasher.HashPassword(request.NewPassword);

@@ -2,28 +2,24 @@ using be_pomo_do.Core.ValueObjects;
 
 namespace be_pomo_do.Application.Common.Interfaces;
 
-/// <summary>Contract for managing generation, lifecycle, and verification of one-time passwords via Redis.</summary>
+// Quản lý sinh mã OTP đăng ký, token đặt lại mật khẩu và xác thực
 public interface IOtpService
 {
-    /// <summary>Generates a cryptographically secure 6-digit OTP, stores it in Redis with a 5-minute TTL, and enforces cooldown.</summary>
-    /// <param name="email">The recipient's email address.</param>
-    /// <param name="purpose">The purpose of the OTP (Register or ForgotPassword).</param>
-    /// <param name="ct">Cancellation token.</param>
-    /// <returns>The generated 6-digit OTP string.</returns>
-    Task<string> GenerateAndSaveOtpAsync(string email, OtpPurpose purpose, CancellationToken ct = default);
+    // Sinh và lưu mã OTP 6 số đăng ký (hạn 5 phút, cooldown 60s)
+    Task<string> GenerateAndSaveOtpAsync(string email, OtpPurpose purpose = OtpPurpose.Register, CancellationToken ct = default);
 
-    /// <summary>Verifies whether the provided OTP code matches the stored value and consumes it if valid.</summary>
-    /// <param name="email">The email associated with the OTP.</param>
-    /// <param name="otpCode">The 6-digit code submitted by the user.</param>
-    /// <param name="purpose">The verification purpose.</param>
-    /// <param name="ct">Cancellation token.</param>
-    /// <returns><see langword="true" /> if verification succeeds; otherwise, <see langword="false" />.</returns>
-    Task<bool> VerifyOtpAsync(string email, string otpCode, OtpPurpose purpose, CancellationToken ct = default);
+    // Kiểm tra mã OTP 6 số người dùng nhập vào
+    Task<bool> VerifyOtpAsync(string email, string otpCode, OtpPurpose purpose = OtpPurpose.Register, CancellationToken ct = default);
 
-    /// <summary>Gets the remaining cooldown time in seconds before a new OTP can be requested.</summary>
-    /// <param name="email">The target email address.</param>
-    /// <param name="purpose">The request purpose.</param>
-    /// <param name="ct">Cancellation token.</param>
-    /// <returns>Remaining cooldown seconds (0 if cooldown has expired).</returns>
-    Task<int> GetRemainingCooldownSecondsAsync(string email, OtpPurpose purpose, CancellationToken ct = default);
+    // Lấy số giây còn lại cần chờ trước khi được gửi lại OTP
+    Task<int> GetRemainingCooldownSecondsAsync(string email, OtpPurpose purpose = OtpPurpose.Register, CancellationToken ct = default);
+
+    // Sinh token 64 ký tự cho nút bấm đặt lại mật khẩu (hạn 15 phút, cooldown 60s)
+    Task<string> GeneratePasswordResetTokenAsync(string email, CancellationToken ct = default);
+
+    // Kiểm tra token đặt lại mật khẩu từ link email
+    Task<bool> VerifyPasswordResetTokenAsync(string email, string token, CancellationToken ct = default);
+
+    // Lấy số giây còn lại cần chờ trước khi được gửi lại link đặt lại mật khẩu
+    Task<int> GetPasswordResetCooldownSecondsAsync(string email, CancellationToken ct = default);
 }

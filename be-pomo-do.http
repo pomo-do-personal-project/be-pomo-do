@@ -1,19 +1,19 @@
-@be_pomo_do_HostAddress = http://localhost:5267
+@be_pomo_do_HostAddress = https://localhost:7051
+# @be_pomo_do_HostAddress = http://localhost:5267
 
 ### 0. Gửi mã OTP Đăng ký tài khoản mới (POST /api/auth/otp/send)
-# Purpose: 1 (Register), 2 (ForgotPassword)
+# Lưu ý: Chỉ cần gửi email, hệ thống mặc định gửi mã OTP 6 số xác thực đăng ký
 POST {{be_pomo_do_HostAddress}}/api/auth/otp/send
 Content-Type: application/json
 
 {
-  "email": "nguyenvanan@gmail.com",
-  "purpose": 1
+  "email": "nguyenvanan@gmail.com"
 }
 
 ###
 
 ### 1. Đăng ký tài khoản mới kèm OTP đã nhận (POST /api/auth/register)
-# Lưu ý: Lấy mã OTP 6 số từ hộp thư Gmail hoặc xem trực tiếp trên Terminal console của Backend
+# Lưu ý: Đăng ký thành công trả về UserDto (không sinh token, cần đăng nhập ở Test 2 để nhận tokens)
 POST {{be_pomo_do_HostAddress}}/api/auth/register
 Content-Type: application/json
 
@@ -26,7 +26,8 @@ Content-Type: application/json
 
 ###
 
-### 1.1. Yêu cầu mã OTP Quên mật khẩu (POST /api/auth/forgot-password)
+### 1.1. Yêu cầu Quên mật khẩu qua email chứa nút bấm xác nhận (POST /api/auth/forgot-password)
+# Lưu ý: Backend gửi email chứa nút bấm "Xác nhận đặt lại mật khẩu" trỏ tới Frontend, đồng thời in Token ra Terminal console
 POST {{be_pomo_do_HostAddress}}/api/auth/forgot-password
 Content-Type: application/json
 
@@ -36,13 +37,14 @@ Content-Type: application/json
 
 ###
 
-### 1.2. Đặt lại mật khẩu mới bằng OTP (POST /api/auth/reset-password)
+### 1.2. Đặt lại mật khẩu mới bằng Token từ nút bấm trong email (POST /api/auth/reset-password)
+# Lưu ý: Token được lấy từ URL nút bấm (?token=...) hoặc copy từ Terminal console
 POST {{be_pomo_do_HostAddress}}/api/auth/reset-password
 Content-Type: application/json
 
 {
   "email": "nguyenvanan@gmail.com",
-  "otpCode": "123456",
+  "token": "<paste_token_here>",
   "newPassword": "NewPassword123@"
 }
 

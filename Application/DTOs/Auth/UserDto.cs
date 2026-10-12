@@ -1,6 +1,6 @@
 namespace be_pomo_do.Application.DTOs.Auth;
 
-/// <summary>Represents the user profile data transfer object.</summary>
+// DTO thông tin người dùng (không chứa token hay dữ liệu nhạy cảm)
 public record UserDto(
     Guid Id,
     string Email,

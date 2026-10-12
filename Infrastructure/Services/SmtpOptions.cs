@@ -26,4 +26,7 @@ public class SmtpOptions
 
     /// <summary>Gets or sets a value that indicates whether SSL/TLS encryption is enabled.</summary>
     public bool EnableSsl { get; set; } = true;
+
+    /// <summary>Gets or sets the base frontend URL for reset password button link.</summary>
+    public string FrontendUrl { get; set; } = "https://localhost:3000";
 }

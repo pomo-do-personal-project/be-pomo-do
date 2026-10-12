@@ -2,30 +2,30 @@ using be_pomo_do.Application.DTOs.Auth;
 
 namespace be_pomo_do.Application.Services;
 
-/// <summary>Defines application service operations for user registration, authentication, token rotation, and session management.</summary>
+// Nghiệp vụ xác thực người dùng, đăng ký, đăng nhập và quản lý phiên
 public interface IAuthService
 {
-    /// <summary>Registers a new user account with default user settings, daily streak, and initial token pair.</summary>
-    Task<AuthResponse> RegisterAsync(RegisterRequest request);
+    // Đăng ký tài khoản mới kèm mã OTP
+    Task<UserDto> RegisterAsync(RegisterRequest request);
 
-    /// <summary>Authenticates user credentials and issues a fresh access and refresh token pair.</summary>
+    // Đăng nhập tài khoản và cấp cặp token JWT
     Task<AuthResponse> LoginAsync(LoginRequest request);
 
-    /// <summary>Validates an active refresh token, revokes it (token rotation), and issues a new access and refresh token pair.</summary>
+    // Làm mới access token bằng refresh token
     Task<AuthResponse> RefreshTokenAsync(string refreshTokenString);
 
-    /// <summary>Retrieves user profile information for the authenticated user identifier.</summary>
+    // Lấy thông tin tài khoản của người dùng hiện tại
     Task<UserDto> GetMeAsync(Guid userId);
 
-    /// <summary>Generates and dispatches an OTP code to verify email address for registration or password recovery.</summary>
+    // Gửi mã OTP 6 số xác thực đăng ký tài khoản
     Task SendOtpAsync(SendOtpRequest request);
 
-    /// <summary>Initiates the forgot-password flow by verifying account existence and dispatching a recovery OTP.</summary>
+    // Gửi email chứa nút bấm xác nhận đặt lại mật khẩu
     Task ForgotPasswordAsync(ForgotPasswordRequest request);
 
-    /// <summary>Resets a user's password after verifying the submitted OTP and revoking existing refresh tokens.</summary>
+    // Đặt lại mật khẩu mới bằng token từ link email
     Task ResetPasswordAsync(ResetPasswordRequest request);
 
-    /// <summary>Revokes the specified refresh token in the persistence store to terminate the session.</summary>
+    // Đăng xuất và thu hồi refresh token
     Task LogoutAsync(string? refreshTokenString);
 }

@@ -2,13 +2,12 @@ using be_pomo_do.Core.ValueObjects;
 
 namespace be_pomo_do.Application.Common.Interfaces;
 
-/// <summary>Contract for dispatching transactional email messages.</summary>
+// Dịch vụ gửi email thông báo và mã xác thực
 public interface IEmailService
 {
-    /// <summary>Sends an OTP verification email containing a stylized HTML message and security advisory.</summary>
-    /// <param name="toEmail">The destination recipient email.</param>
-    /// <param name="otpCode">The 6-digit one-time password code.</param>
-    /// <param name="purpose">The verification context (Register or ForgotPassword).</param>
-    /// <param name="ct">Cancellation token.</param>
-    Task SendOtpEmailAsync(string toEmail, string otpCode, OtpPurpose purpose, CancellationToken ct = default);
+    // Gửi email chứa mã OTP 6 số đăng ký tài khoản
+    Task SendOtpEmailAsync(string toEmail, string otpCode, CancellationToken ct = default);
+
+    // Gửi email chứa nút bấm xác nhận đặt lại mật khẩu
+    Task SendPasswordResetEmailAsync(string toEmail, string resetToken, CancellationToken ct = default);
 }

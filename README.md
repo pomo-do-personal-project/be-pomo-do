@@ -45,8 +45,10 @@ dotnet run
 ```
 
 Ứng dụng sẽ khởi chạy tại:
+- HTTPS (Mặc định): `https://localhost:7051`
 - HTTP: `http://localhost:5267`
-- OpenAPI Spec: `http://localhost:5267/openapi/v1.json`
+- OpenAPI Spec: `https://localhost:7051/openapi/v1.json`
+- Scalar API Docs: `https://localhost:7051/scalar/v1`
 
 ---
 

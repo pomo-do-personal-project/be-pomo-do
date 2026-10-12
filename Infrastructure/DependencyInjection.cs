@@ -44,9 +44,11 @@ public static class DependencyInjection
             {
                 var options = StackExchange.Redis.ConfigurationOptions.Parse(redisConn!);
                 options.AbortOnConnectFail = false;
-                options.ConnectTimeout = 10000;
+                options.ConnectTimeout = 5000;
+                options.SyncTimeout = 5000;
                 return StackExchange.Redis.ConnectionMultiplexer.Connect(options);
             });
+            services.AddSingleton<Services.InMemoryOtpService>();
             services.AddScoped<Application.Common.Interfaces.IOtpService, Services.RedisOtpService>();
         }
         else
@@ -112,6 +114,15 @@ public static class DependencyInjection
             {
                 // Bỏ qua nếu parse URI thất bại, trả về chuỗi gốc
             }
+        }
+
+        // Đảm bảo host có kèm cổng :6379 nếu chưa chỉ định cổng (tránh StackExchange.Redis tự nhảy sang port 6380 khi bật ssl=True)
+        var firstComma = trimmed.IndexOf(',');
+        var hostPart = firstComma >= 0 ? trimmed[..firstComma].Trim() : trimmed;
+        if (!hostPart.Contains(':') && !string.IsNullOrEmpty(hostPart))
+        {
+            var rest = firstComma >= 0 ? trimmed[firstComma..] : string.Empty;
+            trimmed = $"{hostPart}:6379{rest}";
         }
 
         return trimmed;
