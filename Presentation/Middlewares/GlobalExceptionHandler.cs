@@ -1,4 +1,4 @@
-using be_pomo_do.Core.Exceptions;
+﻿using be_pomo_do.Core.Exceptions;
 using Microsoft.AspNetCore.Diagnostics;
 using Microsoft.AspNetCore.Mvc;
 
@@ -24,20 +24,20 @@ public class GlobalExceptionHandler : IExceptionHandler
         Exception exception,
         CancellationToken cancellationToken)
     {
-        _logger.LogError(exception, "An unhandled exception occurred: {Message}", exception.Message);
-
         int statusCode;
         string title;
         string detail;
 
         if (exception is DomainException domainEx)
         {
+            _logger.LogWarning("Domain rule violation: {Message}", domainEx.Message);
             statusCode = StatusCodes.Status400BadRequest;
             title = "Domain Rule Violation";
             detail = domainEx.Message;
         }
         else
         {
+            _logger.LogError(exception, "An unhandled exception occurred: {Message}", exception.Message);
             statusCode = StatusCodes.Status500InternalServerError;
             title = "Internal Server Error";
             detail = "An unexpected error occurred while processing your request.";

@@ -1,3 +1,4 @@
+﻿using be_pomo_do.Core.Exceptions;
 using be_pomo_do.Application.DTOs.Auth;
 using be_pomo_do.Application.Services;
 using be_pomo_do.Presentation.DTOs;
@@ -78,13 +79,22 @@ public class AuthController : ControllerBase
 
         if (string.IsNullOrWhiteSpace(refreshToken))
         {
-            return BadRequest(ApiResponse<AuthResponse>.Fail("Không tìm thấy refresh token trong cookie hoặc payload."));
+            ClearTokenCookies();
+            return Unauthorized(ApiResponse<AuthResponse>.Fail("Không tìm thấy refresh token trong cookie hoặc payload."));
         }
 
-        var result = await _authService.RefreshTokenAsync(refreshToken);
-        SetTokenCookies(result.AccessToken, result.RefreshToken);
-        var response = ApiResponse<AuthResponse>.Ok(result, "Làm mới token thành công.");
-        return Ok(response);
+        try
+        {
+            var result = await _authService.RefreshTokenAsync(refreshToken);
+            SetTokenCookies(result.AccessToken, result.RefreshToken);
+            var response = ApiResponse<AuthResponse>.Ok(result, "Làm mới token thành công.");
+            return Ok(response);
+        }
+        catch (DomainException ex)
+        {
+            ClearTokenCookies();
+            return Unauthorized(ApiResponse<AuthResponse>.Fail(ex.Message));
+        }
     }
 
     /// <summary>Retrieves profile details of the currently authenticated user.</summary>
