@@ -75,6 +75,7 @@ public class PomodoroService : IPomodoroService
         session.OvertimeSeconds = overtimeSeconds;
         session.IsCompleted = true;
         session.CompletedAt = now;
+
         session.Note = request.Note?.Trim();
 
         // Cập nhật DailyStreak cho người dùng
