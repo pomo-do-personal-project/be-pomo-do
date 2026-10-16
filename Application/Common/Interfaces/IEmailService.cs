@@ -10,4 +10,8 @@ public interface IEmailService
 
     // Gửi email chứa nút bấm xác nhận đặt lại mật khẩu
     Task SendPasswordResetEmailAsync(string toEmail, string resetToken, CancellationToken ct = default);
+
+    // Gửi email báo cáo định kỳ với giao diện HTML
+    Task SendEmailReportAsync(string toEmail, string subject, string htmlBody, CancellationToken ct = default);
 }
+

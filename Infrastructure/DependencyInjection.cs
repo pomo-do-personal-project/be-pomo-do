@@ -61,7 +61,12 @@ public static class DependencyInjection
         services.Configure<Services.SmtpOptions>(configuration.GetSection(Services.SmtpOptions.SectionName));
         services.AddScoped<Application.Common.Interfaces.IEmailService, Services.GmailEmailService>();
 
-        // 7. Scrutor: Tự động quét và đăng ký tất cả các class có đuôi Repository (map với I...Repository tương ứng)
+        // 7. Cấu hình Redis Streams Email Report Queue & Background Workers
+        services.AddSingleton<Application.Common.Interfaces.IEmailReportQueue, Services.RedisEmailReportQueue>();
+        services.AddHostedService<BackgroundServices.EmailReportConsumerWorker>();
+        services.AddHostedService<BackgroundServices.EmailReportSchedulerWorker>();
+
+        // 8. Scrutor: Tự động quét và đăng ký tất cả các class có đuôi Repository (map với I...Repository tương ứng)
         services.Scan(scan => scan
             .FromAssemblyOf<Program>()
             .AddClasses(classes => classes.Where(type => type.Name.EndsWith("Repository")))

@@ -50,7 +50,12 @@ public class SettingsService : ISettingsService
                 ShortBreakDuration = request.ShortBreakDuration,
                 LongBreakDuration = request.LongBreakDuration,
                 AutoStartBreaks = request.AutoStartBreaks,
-                ThemeMode = string.IsNullOrWhiteSpace(request.ThemeMode) ? "light" : request.ThemeMode.Trim().ToLower()
+                ThemeMode = string.IsNullOrWhiteSpace(request.ThemeMode) ? "light" : request.ThemeMode.Trim().ToLower(),
+                EmailWeeklyReport = request.EmailWeeklyReport,
+                EmailDailyDigest = request.EmailDailyDigest,
+                ReportEmail = string.IsNullOrWhiteSpace(request.ReportEmail) ? null : request.ReportEmail.Trim(),
+                DailyDigestTime = string.IsNullOrWhiteSpace(request.DailyDigestTime) ? "07:00" : request.DailyDigestTime.Trim(),
+                WeeklyReportTime = string.IsNullOrWhiteSpace(request.WeeklyReportTime) ? "08:00" : request.WeeklyReportTime.Trim()
             };
             await _settingsRepository.AddAsync(settings);
         }
@@ -60,6 +65,17 @@ public class SettingsService : ISettingsService
             settings.ShortBreakDuration = request.ShortBreakDuration;
             settings.LongBreakDuration = request.LongBreakDuration;
             settings.AutoStartBreaks = request.AutoStartBreaks;
+            settings.EmailWeeklyReport = request.EmailWeeklyReport;
+            settings.EmailDailyDigest = request.EmailDailyDigest;
+            settings.ReportEmail = string.IsNullOrWhiteSpace(request.ReportEmail) ? null : request.ReportEmail.Trim();
+            if (!string.IsNullOrWhiteSpace(request.DailyDigestTime))
+            {
+                settings.DailyDigestTime = request.DailyDigestTime.Trim();
+            }
+            if (!string.IsNullOrWhiteSpace(request.WeeklyReportTime))
+            {
+                settings.WeeklyReportTime = request.WeeklyReportTime.Trim();
+            }
             if (!string.IsNullOrWhiteSpace(request.ThemeMode))
             {
                 settings.ThemeMode = request.ThemeMode.Trim().ToLower();
@@ -80,7 +96,13 @@ public class SettingsService : ISettingsService
             ShortBreakDuration = entity.ShortBreakDuration,
             LongBreakDuration = entity.LongBreakDuration,
             AutoStartBreaks = entity.AutoStartBreaks,
-            ThemeMode = entity.ThemeMode
+            ThemeMode = entity.ThemeMode,
+            EmailWeeklyReport = entity.EmailWeeklyReport,
+            EmailDailyDigest = entity.EmailDailyDigest,
+            ReportEmail = entity.ReportEmail,
+            DailyDigestTime = entity.DailyDigestTime,
+            WeeklyReportTime = entity.WeeklyReportTime
         };
     }
 }
+

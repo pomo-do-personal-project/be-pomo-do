@@ -11,6 +11,13 @@ public interface ISettingsRepository
     /// <summary>Adds initial settings for a user.</summary>
     Task AddAsync(UserSettings settings);
 
-    /// <summary>Saves all pending changes to the database context.</summary>
+    // Lưu các thay đổi vào CSDL
     Task SaveChangesAsync();
+
+    // Lấy danh sách cấu hình của các user bật nhận Daily Digest với khung giờ <= currentTime và chưa gửi trong ngày hôm nay
+    Task<List<UserSettings>> GetUsersForDailyDigestAsync(DateOnly today, string currentTime, CancellationToken ct = default);
+
+    // Lấy danh sách cấu hình của các user bật nhận Weekly Report với khung giờ <= currentTime và chưa gửi trong tuần này
+    Task<List<UserSettings>> GetUsersForWeeklyReportAsync(DateOnly currentWeekMonday, string currentTime, CancellationToken ct = default);
 }
+

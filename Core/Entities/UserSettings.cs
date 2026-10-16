@@ -9,7 +9,15 @@ public class UserSettings
     public int LongBreakDuration { get; set; } = 15;
     public bool AutoStartBreaks { get; set; } = false;
     public string ThemeMode { get; set; } = "light";
+    public bool EmailWeeklyReport { get; set; } = false;
+    public bool EmailDailyDigest { get; set; } = false;
+    public string? ReportEmail { get; set; }
+    public string DailyDigestTime { get; set; } = "07:00";
+    public string WeeklyReportTime { get; set; } = "08:00";
+    public DateOnly? LastDailyDigestSentDate { get; set; }
+    public DateOnly? LastWeeklyReportSentDate { get; set; }
 
     // Navigation property
     public User? User { get; set; }
 }
+

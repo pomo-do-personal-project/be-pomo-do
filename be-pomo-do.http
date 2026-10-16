@@ -277,17 +277,46 @@ Authorization: Bearer <paste_access_token_here>
 
 ###
 
-### 24. Cập nhật thời lượng Pomodoro sang 1 phút để test nhanh hoặc 50 phút (PUT /api/settings)
+### 24. Cập nhật thời lượng Pomodoro và cấu hình nhận Email báo cáo (PUT /api/settings)
 PUT {{be_pomo_do_HostAddress}}/api/settings
 Authorization: Bearer <paste_access_token_here>
 Content-Type: application/json
 
 {
-  "focusDuration": 1,
-  "shortBreakDuration": 1,
-  "longBreakDuration": 2,
+  "focusDuration": 25,
+  "shortBreakDuration": 5,
+  "longBreakDuration": 15,
   "autoStartBreaks": false,
-  "themeMode": "dark"
+  "themeMode": "dark",
+  "emailWeeklyReport": true,
+  "emailDailyDigest": true,
+  "dailyDigestTime": "07:00",
+  "weeklyReportTime": "08:00"
 }
+
+###
+
+### 25. Gửi thử nghiệm Báo cáo năng suất tuần (POST /api/settings/email-report/test)
+POST {{be_pomo_do_HostAddress}}/api/settings/email-report/test
+Authorization: Bearer <paste_access_token_here>
+Content-Type: application/json
+
+{
+  "reportType": "weekly",
+  "targetEmail": "minhtest204@gmail.com"
+}
+
+###
+
+### 26. Gửi thử nghiệm Tóm tắt công việc đầu ngày (POST /api/settings/email-report/test)
+POST {{be_pomo_do_HostAddress}}/api/settings/email-report/test
+Authorization: Bearer <paste_access_token_here>
+Content-Type: application/json
+
+{
+  "reportType": "daily",
+  "targetEmail": "minhtest204@gmail.com"
+}
+
 
 

@@ -91,6 +91,37 @@ public class GmailEmailService : IEmailService
         await SendViaSmtpAsync(message, toEmail, "Password Reset", ct);
     }
 
+    // Gửi email báo cáo định kỳ với nội dung HTML tùy chỉnh
+    public async Task SendEmailReportAsync(string toEmail, string subject, string htmlBody, CancellationToken ct = default)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(toEmail);
+        ArgumentException.ThrowIfNullOrWhiteSpace(subject);
+        ArgumentException.ThrowIfNullOrWhiteSpace(htmlBody);
+
+        _logger.LogInformation(
+            "\n==================================================\n" +
+            "📢 [POMO-DO EMAIL REPORT DISPATCH]\n" +
+            "To: {ToEmail}\n" +
+            "Subject: {Subject}\n" +
+            "==================================================",
+            toEmail, subject);
+
+        var message = new MimeMessage();
+        message.From.Add(new MailboxAddress(_options.SenderName, _options.SenderEmail));
+        message.To.Add(new MailboxAddress(toEmail, toEmail));
+        message.ReplyTo.Add(new MailboxAddress(_options.SenderName, _options.SenderEmail));
+        message.Subject = subject;
+
+        var bodyBuilder = new BodyBuilder
+        {
+            HtmlBody = htmlBody,
+            TextBody = "Vui lòng mở ứng dụng hoặc xem trên trình duyệt hỗ trợ HTML để đọc báo cáo chi tiết."
+        };
+        message.Body = bodyBuilder.ToMessageBody();
+
+        await SendViaSmtpAsync(message, toEmail, subject, ct);
+    }
+
     // Gửi message qua SmtpClient kết nối Gmail
     private async Task SendViaSmtpAsync(MimeMessage message, string toEmail, string context, CancellationToken ct)
     {

@@ -396,17 +396,50 @@ namespace be_pomo_do.Infrastructure.Data.Migrations
                         .HasDefaultValue(false)
                         .HasColumnName("auto_start_breaks");
 
+                    b.Property<string>("DailyDigestTime")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasMaxLength(10)
+                        .HasColumnType("character varying(10)")
+                        .HasDefaultValue("07:00")
+                        .HasColumnName("daily_digest_time");
+
+                    b.Property<bool>("EmailDailyDigest")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(false)
+                        .HasColumnName("email_daily_digest");
+
+                    b.Property<bool>("EmailWeeklyReport")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(false)
+                        .HasColumnName("email_weekly_report");
+
                     b.Property<int>("FocusDuration")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("integer")
                         .HasDefaultValue(25)
                         .HasColumnName("focus_duration");
 
+                    b.Property<DateOnly?>("LastDailyDigestSentDate")
+                        .HasColumnType("date")
+                        .HasColumnName("last_daily_digest_sent_date");
+
+                    b.Property<DateOnly?>("LastWeeklyReportSentDate")
+                        .HasColumnType("date")
+                        .HasColumnName("last_weekly_report_sent_date");
+
                     b.Property<int>("LongBreakDuration")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("integer")
                         .HasDefaultValue(15)
                         .HasColumnName("long_break_duration");
+
+                    b.Property<string>("ReportEmail")
+                        .HasMaxLength(255)
+                        .HasColumnType("character varying(255)")
+                        .HasColumnName("report_email");
 
                     b.Property<int>("ShortBreakDuration")
                         .ValueGeneratedOnAdd()
@@ -425,6 +458,14 @@ namespace be_pomo_do.Infrastructure.Data.Migrations
                     b.Property<Guid>("UserId")
                         .HasColumnType("uuid")
                         .HasColumnName("user_id");
+
+                    b.Property<string>("WeeklyReportTime")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasMaxLength(10)
+                        .HasColumnType("character varying(10)")
+                        .HasDefaultValue("08:00")
+                        .HasColumnName("weekly_report_time");
 
                     b.HasKey("Id");
 

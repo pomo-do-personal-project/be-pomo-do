@@ -14,14 +14,18 @@ namespace be_pomo_do.Presentation.Controllers;
 public class SettingsController : ControllerBase
 {
     private readonly ISettingsService _settingsService;
+    private readonly Application.Common.Interfaces.IEmailReportService _emailReportService;
 
-    /// <summary>Initializes a new instance of <see cref="SettingsController"/>.</summary>
-    public SettingsController(ISettingsService settingsService)
+    // Khởi tạo SettingsController với ISettingsService và IEmailReportService
+    public SettingsController(
+        ISettingsService settingsService,
+        Application.Common.Interfaces.IEmailReportService emailReportService)
     {
         _settingsService = settingsService ?? throw new ArgumentNullException(nameof(settingsService));
+        _emailReportService = emailReportService ?? throw new ArgumentNullException(nameof(emailReportService));
     }
 
-    /// <summary>Lấy cấu hình thời lượng Pomodoro và preferences của người dùng hiện tại.</summary>
+    // Lấy cấu hình thời lượng Pomodoro và preferences của người dùng hiện tại
     [HttpGet]
     public async Task<ActionResult<ApiResponse<UserSettingsDto>>> GetSettings()
     {
@@ -30,13 +34,39 @@ public class SettingsController : ControllerBase
         return Ok(ApiResponse<UserSettingsDto>.Ok(settings, "Lấy cài đặt thành công."));
     }
 
-    /// <summary>Cập nhật thời lượng Pomodoro (Focus, Short Break, Long Break) và cấu hình cá nhân.</summary>
+    // Cập nhật thời lượng Pomodoro và cấu hình nhận email báo cáo
     [HttpPut]
     public async Task<ActionResult<ApiResponse<UserSettingsDto>>> UpdateSettings([FromBody] UpdateUserSettingsRequest request)
     {
         var userId = GetCurrentUserId();
         var settings = await _settingsService.UpdateSettingsAsync(userId, request);
         return Ok(ApiResponse<UserSettingsDto>.Ok(settings, "Cập nhật cài đặt thành công."));
+    }
+
+    // Gửi thử nghiệm email báo cáo (Weekly hoặc Daily) ngay lập tức
+    [HttpPost("email-report/test")]
+    public async Task<ActionResult<ApiResponse<bool>>> SendTestEmailReport([FromBody] TestEmailReportRequest request)
+    {
+        var userId = GetCurrentUserId();
+        var isWeekly = string.Equals(request.ReportType, "weekly", StringComparison.OrdinalIgnoreCase);
+        var isDaily = string.Equals(request.ReportType, "daily", StringComparison.OrdinalIgnoreCase);
+
+        if (!isWeekly && !isDaily)
+        {
+            throw new Core.Exceptions.DomainException("Loại báo cáo không hợp lệ. Vui lòng chọn 'weekly' hoặc 'daily'.");
+        }
+
+        if (isWeekly)
+        {
+            await _emailReportService.SendWeeklyReportAsync(userId, request.TargetEmail);
+        }
+        else
+        {
+            await _emailReportService.SendDailyDigestAsync(userId, request.TargetEmail);
+        }
+
+        var recipientNotice = string.IsNullOrWhiteSpace(request.TargetEmail) ? "hộp thư tài khoản của bạn" : request.TargetEmail;
+        return Ok(ApiResponse<bool>.Ok(true, $"Đã gửi thử nghiệm báo cáo ({request.ReportType}) tới {recipientNotice} thành công."));
     }
 
     private Guid GetCurrentUserId()

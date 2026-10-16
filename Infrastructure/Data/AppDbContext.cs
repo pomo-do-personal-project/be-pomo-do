@@ -85,6 +85,13 @@ public class AppDbContext : DbContext
             entity.Property(e => e.LongBreakDuration).HasColumnName("long_break_duration").HasDefaultValue(15);
             entity.Property(e => e.AutoStartBreaks).HasColumnName("auto_start_breaks").HasDefaultValue(false);
             entity.Property(e => e.ThemeMode).HasColumnName("theme_mode").HasMaxLength(50).HasDefaultValue("light");
+            entity.Property(e => e.EmailWeeklyReport).HasColumnName("email_weekly_report").HasDefaultValue(false);
+            entity.Property(e => e.EmailDailyDigest).HasColumnName("email_daily_digest").HasDefaultValue(false);
+            entity.Property(e => e.ReportEmail).HasColumnName("report_email").HasMaxLength(255);
+            entity.Property(e => e.DailyDigestTime).HasColumnName("daily_digest_time").HasMaxLength(10).HasDefaultValue("07:00");
+            entity.Property(e => e.WeeklyReportTime).HasColumnName("weekly_report_time").HasMaxLength(10).HasDefaultValue("08:00");
+            entity.Property(e => e.LastDailyDigestSentDate).HasColumnName("last_daily_digest_sent_date");
+            entity.Property(e => e.LastWeeklyReportSentDate).HasColumnName("last_weekly_report_sent_date");
         });
 
         // 3. DailyStreaks
