@@ -4,7 +4,7 @@ using be_pomo_do.Core.ValueObjects;
 
 namespace be_pomo_do.Application.Common.Mappings;
 
-/// <summary>Extension methods for mapping Task and Subtask entities to DTOs.</summary>
+// Extension methods for mapping Task and Subtask entities to DTOs.
 public static class TaskMappingExtensions
 {
     // Chuyển đổi TaskItem entity sang TaskDto
@@ -19,7 +19,7 @@ public static class TaskMappingExtensions
             Status = task.Status,
             EstimatedPomodoros = task.EstimatedPomodoros,
             EstimatedMinutes = task.EstimatedMinutes,
-            CompletedPomodoros = task.FocusSessions.Count(f => f.Mode == FocusSessionMode.Pomo),
+            CompletedPomodoros = task.FocusSessions.Count(f => f.Mode == FocusSessionMode.Pomo && f.IsCompleted),
             DueDate = task.DueDate,
             IsQuickAdd = task.IsQuickAdd,
             CreatedAt = task.CreatedAt,

@@ -6,6 +6,9 @@ public record UserDto(
     string Email,
     string DisplayName,
     string? AvatarUrl,
-    DateTime CreatedAt
+    DateTime CreatedAt,
+    bool IsAdmin = false,
+    bool IsSuspended = false,
+    string? SuspendedReason = null
 );
 

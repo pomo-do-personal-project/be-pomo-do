@@ -7,7 +7,7 @@ using Microsoft.AspNetCore.Mvc;
 
 namespace be_pomo_do.Presentation.Controllers;
 
-/// <summary>Endpoints for managing user custom tags and category colors.</summary>
+// Endpoints for managing user custom tags and category colors.
 [ApiController]
 [Authorize]
 [Route("api/[controller]")]
@@ -15,13 +15,13 @@ public class TagsController : ControllerBase
 {
     private readonly ITagService _tagService;
 
-    /// <summary>Initializes a new instance of <see cref="TagsController"/>.</summary>
+    // Initializes a new instance of TagsController.
     public TagsController(ITagService tagService)
     {
         _tagService = tagService ?? throw new ArgumentNullException(nameof(tagService));
     }
 
-    /// <summary>Retrieves all tags belonging to the current user.</summary>
+    // Retrieves all tags belonging to the current user.
     [HttpGet]
     public async Task<ActionResult<ApiResponse<List<TagDto>>>> GetTags()
     {
@@ -30,7 +30,7 @@ public class TagsController : ControllerBase
         return Ok(ApiResponse<List<TagDto>>.Ok(tags, "Lấy danh sách thẻ tag thành công."));
     }
 
-    /// <summary>Retrieves details of a specific tag by ID.</summary>
+    // Retrieves details of a specific tag by ID.
     [HttpGet("{id:guid}")]
     public async Task<ActionResult<ApiResponse<TagDto>>> GetTagById([FromRoute] Guid id)
     {
@@ -39,7 +39,7 @@ public class TagsController : ControllerBase
         return Ok(ApiResponse<TagDto>.Ok(tag, "Lấy chi tiết thẻ tag thành công."));
     }
 
-    /// <summary>Creates a new custom tag.</summary>
+    // Creates a new custom tag.
     [HttpPost]
     public async Task<ActionResult<ApiResponse<TagDto>>> CreateTag([FromBody] CreateTagRequest request)
     {
@@ -48,7 +48,7 @@ public class TagsController : ControllerBase
         return StatusCode(StatusCodes.Status201Created, ApiResponse<TagDto>.Ok(tag, "Tạo thẻ tag thành công."));
     }
 
-    /// <summary>Updates name or color of an existing tag.</summary>
+    // Updates name or color of an existing tag.
     [HttpPut("{id:guid}")]
     public async Task<ActionResult<ApiResponse<TagDto>>> UpdateTag(
         [FromRoute] Guid id,
@@ -59,7 +59,7 @@ public class TagsController : ControllerBase
         return Ok(ApiResponse<TagDto>.Ok(tag, "Cập nhật thẻ tag thành công."));
     }
 
-    /// <summary>Permanently deletes a tag and detaches it from all tasks.</summary>
+    // Permanently deletes a tag and detaches it from all tasks.
     [HttpDelete("{id:guid}")]
     public async Task<ActionResult<ApiResponse<string>>> DeleteTag([FromRoute] Guid id)
     {

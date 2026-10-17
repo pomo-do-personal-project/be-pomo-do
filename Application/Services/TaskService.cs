@@ -8,7 +8,7 @@ using TaskStatus = be_pomo_do.Core.ValueObjects.TaskStatus;
 
 namespace be_pomo_do.Application.Services;
 
-/// <summary>Application service implementing task and subtask business operations.</summary>
+// Application service implementing task and subtask business operations.
 public class TaskService : ITaskService
 {
     private readonly ITaskRepository _taskRepository;
@@ -18,14 +18,12 @@ public class TaskService : ITaskService
         _taskRepository = taskRepository ?? throw new ArgumentNullException(nameof(taskRepository));
     }
 
-    /// <inheritdoc/>
     public async Task<List<TaskDto>> GetTasksAsync(Guid userId, TaskFilterParams filterParams)
     {
         var tasks = await _taskRepository.GetUserTasksAsync(userId, filterParams);
         return tasks.Select(t => t.ToDto()).ToList();
     }
 
-    /// <inheritdoc/>
     public async Task<TaskDto> GetTaskByIdAsync(Guid taskId, Guid userId)
     {
         var task = await _taskRepository.GetTaskByIdAsync(taskId, userId, includeDeleted: false);
@@ -36,7 +34,6 @@ public class TaskService : ITaskService
         return task.ToDto();
     }
 
-    /// <inheritdoc/>
     public async Task<TaskDto> CreateTaskAsync(Guid userId, CreateTaskRequest request)
     {
         var task = new TaskItem
@@ -81,7 +78,6 @@ public class TaskService : ITaskService
         return task.ToDto();
     }
 
-    /// <inheritdoc/>
     public async Task<TaskDto> UpdateTaskAsync(Guid taskId, Guid userId, UpdateTaskRequest request)
     {
         var task = await _taskRepository.GetTaskByIdAsync(taskId, userId, includeDeleted: false);
@@ -113,7 +109,6 @@ public class TaskService : ITaskService
         return task.ToDto();
     }
 
-    /// <inheritdoc/>
     public async Task<TaskDto> UpdateTaskStatusAsync(Guid taskId, Guid userId, TaskStatus status)
     {
         var task = await _taskRepository.GetTaskByIdAsync(taskId, userId, includeDeleted: false);
@@ -128,7 +123,6 @@ public class TaskService : ITaskService
         return task.ToDto();
     }
 
-    /// <inheritdoc/>
     public async Task SoftDeleteTaskAsync(Guid taskId, Guid userId)
     {
         var task = await _taskRepository.GetTaskByIdAsync(taskId, userId, includeDeleted: false);
@@ -143,7 +137,6 @@ public class TaskService : ITaskService
         await _taskRepository.SaveChangesAsync();
     }
 
-    /// <inheritdoc/>
     public async Task HardDeleteTaskAsync(Guid taskId, Guid userId)
     {
         var task = await _taskRepository.GetTaskByIdAsync(taskId, userId, includeDeleted: true);
@@ -156,7 +149,6 @@ public class TaskService : ITaskService
         await _taskRepository.SaveChangesAsync();
     }
 
-    /// <inheritdoc/>
     public async Task<TaskDto> RestoreTaskAsync(Guid taskId, Guid userId)
     {
         var task = await _taskRepository.GetTaskByIdAsync(taskId, userId, includeDeleted: true);
@@ -172,7 +164,6 @@ public class TaskService : ITaskService
         return task.ToDto();
     }
 
-    /// <inheritdoc/>
     public async Task<SubtaskDto> AddSubtaskAsync(Guid taskId, Guid userId, CreateSubtaskRequest request)
     {
         var task = await _taskRepository.GetTaskByIdAsync(taskId, userId, includeDeleted: false)
@@ -191,7 +182,6 @@ public class TaskService : ITaskService
         return subtask.ToDto();
     }
 
-    /// <inheritdoc/>
     public async Task<SubtaskDto> ToggleSubtaskAsync(Guid taskId, Guid subtaskId, Guid userId)
     {
         var task = await _taskRepository.GetTaskByIdAsync(taskId, userId, includeDeleted: false)
@@ -206,7 +196,6 @@ public class TaskService : ITaskService
         return subtask.ToDto();
     }
 
-    /// <inheritdoc/>
     public async Task<SubtaskDto> UpdateSubtaskAsync(Guid taskId, Guid subtaskId, Guid userId, UpdateSubtaskRequest request)
     {
         var task = await _taskRepository.GetTaskByIdAsync(taskId, userId, includeDeleted: false)
@@ -223,7 +212,6 @@ public class TaskService : ITaskService
         return subtask.ToDto();
     }
 
-    /// <inheritdoc/>
     public async Task DeleteSubtaskAsync(Guid taskId, Guid subtaskId, Guid userId)
     {
         var task = await _taskRepository.GetTaskByIdAsync(taskId, userId, includeDeleted: false)

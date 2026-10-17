@@ -7,7 +7,7 @@ using Microsoft.AspNetCore.Mvc;
 
 namespace be_pomo_do.Presentation.Controllers;
 
-/// <summary>Endpoints for managing tasks, subtasks, tags association, and Eisenhower priority matrix.</summary>
+// Endpoints for managing tasks, subtasks, tags association, and Eisenhower priority matrix.
 [ApiController]
 [Authorize]
 [Route("api/[controller]")]
@@ -15,14 +15,13 @@ public class TasksController : ControllerBase
 {
     private readonly ITaskService _taskService;
 
-    /// <summary>Initializes a new instance of <see cref="TasksController"/> with traditional constructor dependency injection.</summary>
-    /// <param name="taskService">The task application service instance.</param>
+    // Initializes a new instance of TasksController with traditional constructor dependency injection.
     public TasksController(ITaskService taskService)
     {
         _taskService = taskService ?? throw new ArgumentNullException(nameof(taskService));
     }
 
-    /// <summary>Retrieves filtered and sorted tasks for the current user.</summary>
+    // Retrieves filtered and sorted tasks for the current user.
     [HttpGet]
     public async Task<ActionResult<ApiResponse<List<TaskDto>>>> GetTasks([FromQuery] TaskFilterParams filterParams)
     {
@@ -31,7 +30,7 @@ public class TasksController : ControllerBase
         return Ok(ApiResponse<List<TaskDto>>.Ok(tasks, "Lấy danh sách công việc thành công."));
     }
 
-    /// <summary>Retrieves specific task details by ID.</summary>
+    // Retrieves specific task details by ID.
     [HttpGet("{id:guid}")]
     public async Task<ActionResult<ApiResponse<TaskDto>>> GetTaskById([FromRoute] Guid id)
     {
@@ -40,7 +39,7 @@ public class TasksController : ControllerBase
         return Ok(ApiResponse<TaskDto>.Ok(task, "Lấy chi tiết công việc thành công."));
     }
 
-    /// <summary>Creates a new task item with optional tags and initial subtasks.</summary>
+    // Creates a new task item with optional tags and initial subtasks.
     [HttpPost]
     public async Task<ActionResult<ApiResponse<TaskDto>>> CreateTask([FromBody] CreateTaskRequest request)
     {
@@ -49,7 +48,7 @@ public class TasksController : ControllerBase
         return StatusCode(StatusCodes.Status201Created, ApiResponse<TaskDto>.Ok(task, "Tạo công việc thành công."));
     }
 
-    /// <summary>Updates an existing task item.</summary>
+    // Updates an existing task item.
     [HttpPut("{id:guid}")]
     public async Task<ActionResult<ApiResponse<TaskDto>>> UpdateTask(
         [FromRoute] Guid id,
@@ -60,7 +59,7 @@ public class TasksController : ControllerBase
         return Ok(ApiResponse<TaskDto>.Ok(task, "Cập nhật công việc thành công."));
     }
 
-    /// <summary>Updates the status of a task item (e.g. Todo, InProgress, Completed, Cancelled).</summary>
+    // Updates the status of a task item (e.g. Todo, InProgress, Completed, Cancelled).
     [HttpPatch("{id:guid}/status")]
     public async Task<ActionResult<ApiResponse<TaskDto>>> UpdateTaskStatus(
         [FromRoute] Guid id,
@@ -71,7 +70,7 @@ public class TasksController : ControllerBase
         return Ok(ApiResponse<TaskDto>.Ok(task, "Cập nhật trạng thái công việc thành công."));
     }
 
-    /// <summary>Soft deletes a task item (moves to trash bin).</summary>
+    // Soft deletes a task item (moves to trash bin).
     [HttpDelete("{id:guid}")]
     public async Task<ActionResult<ApiResponse<string>>> DeleteTask([FromRoute] Guid id)
     {
@@ -80,7 +79,7 @@ public class TasksController : ControllerBase
         return Ok(ApiResponse<string>.Ok("Đã chuyển công việc vào thùng rác thành công."));
     }
 
-    /// <summary>Permanently deletes a task item from database (hard delete).</summary>
+    // Permanently deletes a task item from database (hard delete).
     [HttpDelete("{id:guid}/hard")]
     public async Task<ActionResult<ApiResponse<string>>> HardDeleteTask([FromRoute] Guid id)
     {
@@ -89,7 +88,7 @@ public class TasksController : ControllerBase
         return Ok(ApiResponse<string>.Ok("Đã xóa vĩnh viễn công việc thành công."));
     }
 
-    /// <summary>Restores a soft-deleted task item from trash bin.</summary>
+    // Restores a soft-deleted task item from trash bin.
     [HttpPost("{id:guid}/restore")]
     public async Task<ActionResult<ApiResponse<TaskDto>>> RestoreTask([FromRoute] Guid id)
     {
@@ -98,7 +97,7 @@ public class TasksController : ControllerBase
         return Ok(ApiResponse<TaskDto>.Ok(task, "Khôi phục công việc thành công."));
     }
 
-    /// <summary>Adds a new subtask to an existing task.</summary>
+    // Adds a new subtask to an existing task.
     [HttpPost("{taskId:guid}/subtasks")]
     public async Task<ActionResult<ApiResponse<SubtaskDto>>> AddSubtask(
         [FromRoute] Guid taskId,
@@ -109,7 +108,7 @@ public class TasksController : ControllerBase
         return StatusCode(StatusCodes.Status201Created, ApiResponse<SubtaskDto>.Ok(subtask, "Thêm subtask thành công."));
     }
 
-    /// <summary>Toggles completion status of a subtask.</summary>
+    // Toggles completion status of a subtask.
     [HttpPatch("{taskId:guid}/subtasks/{subtaskId:guid}/toggle")]
     public async Task<ActionResult<ApiResponse<SubtaskDto>>> ToggleSubtask(
         [FromRoute] Guid taskId,
@@ -120,7 +119,7 @@ public class TasksController : ControllerBase
         return Ok(ApiResponse<SubtaskDto>.Ok(subtask, "Cập nhật trạng thái subtask thành công."));
     }
 
-    /// <summary>Updates title or order of a subtask.</summary>
+    // Updates title or order of a subtask.
     [HttpPut("{taskId:guid}/subtasks/{subtaskId:guid}")]
     public async Task<ActionResult<ApiResponse<SubtaskDto>>> UpdateSubtask(
         [FromRoute] Guid taskId,
@@ -132,7 +131,7 @@ public class TasksController : ControllerBase
         return Ok(ApiResponse<SubtaskDto>.Ok(subtask, "Cập nhật subtask thành công."));
     }
 
-    /// <summary>Permanently deletes a subtask.</summary>
+    // Permanently deletes a subtask.
     [HttpDelete("{taskId:guid}/subtasks/{subtaskId:guid}")]
     public async Task<ActionResult<ApiResponse<string>>> DeleteSubtask(
         [FromRoute] Guid taskId,

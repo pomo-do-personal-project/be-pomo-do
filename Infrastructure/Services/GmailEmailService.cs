@@ -8,7 +8,7 @@ using MimeKit;
 
 namespace be_pomo_do.Infrastructure.Services;
 
-/// <summary>Sends transactional OTP verification emails via Gmail SMTP with modern HTML templates and console logging.</summary>
+// Sends transactional OTP verification emails via Gmail SMTP with modern HTML templates and console logging.
 public class GmailEmailService : IEmailService
 {
     private readonly SmtpOptions _options;

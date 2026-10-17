@@ -4,18 +4,17 @@ using be_pomo_do.Core.Entities;
 
 namespace be_pomo_do.Application.Services;
 
-/// <summary>Service handling retrieval and updates of user settings and pomodoro timers.</summary>
+// Service handling retrieval and updates of user settings and pomodoro timers.
 public class SettingsService : ISettingsService
 {
     private readonly ISettingsRepository _settingsRepository;
 
-    /// <summary>Initializes a new instance of <see cref="SettingsService"/>.</summary>
+    // Initializes a new instance of SettingsService.
     public SettingsService(ISettingsRepository settingsRepository)
     {
         _settingsRepository = settingsRepository ?? throw new ArgumentNullException(nameof(settingsRepository));
     }
 
-    /// <inheritdoc/>
     public async Task<UserSettingsDto> GetSettingsAsync(Guid userId)
     {
         var settings = await _settingsRepository.GetByUserIdAsync(userId);
@@ -37,7 +36,6 @@ public class SettingsService : ISettingsService
         return MapToDto(settings);
     }
 
-    /// <inheritdoc/>
     public async Task<UserSettingsDto> UpdateSettingsAsync(Guid userId, UpdateUserSettingsRequest request)
     {
         var settings = await _settingsRepository.GetByUserIdAsync(userId);

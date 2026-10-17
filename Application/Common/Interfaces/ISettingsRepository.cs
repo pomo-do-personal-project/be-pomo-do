@@ -2,13 +2,13 @@ using be_pomo_do.Core.Entities;
 
 namespace be_pomo_do.Application.Common.Interfaces;
 
-/// <summary>Repository contract for querying and persisting user settings.</summary>
+// Repository contract for querying and persisting user settings.
 public interface ISettingsRepository
 {
-    /// <summary>Retrieves user settings by user identifier.</summary>
+    // Retrieves user settings by user identifier.
     Task<UserSettings?> GetByUserIdAsync(Guid userId);
 
-    /// <summary>Adds initial settings for a user.</summary>
+    // Adds initial settings for a user.
     Task AddAsync(UserSettings settings);
 
     // Lưu các thay đổi vào CSDL

@@ -7,7 +7,7 @@ using Microsoft.AspNetCore.Mvc;
 
 namespace be_pomo_do.Presentation.Controllers;
 
-/// <summary>Endpoints for Pomodoro timer sessions, overtime tracking, and daily streaks.</summary>
+// Endpoints for Pomodoro timer sessions, overtime tracking, and daily streaks.
 [ApiController]
 [Authorize]
 [Route("api/[controller]")]
@@ -15,14 +15,13 @@ public class PomodoroController : ControllerBase
 {
     private readonly IPomodoroService _pomodoroService;
 
-    /// <summary>Initializes a new instance of <see cref="PomodoroController"/> with traditional constructor dependency injection.</summary>
-    /// <param name="pomodoroService">The pomodoro application service instance.</param>
+    // Initializes a new instance of PomodoroController with traditional constructor dependency injection.
     public PomodoroController(IPomodoroService pomodoroService)
     {
         _pomodoroService = pomodoroService ?? throw new ArgumentNullException(nameof(pomodoroService));
     }
 
-    /// <summary>Starts a new Pomodoro or Stopwatch session.</summary>
+    // Starts a new Pomodoro or Stopwatch session.
     [HttpPost("start")]
     public async Task<ActionResult<ApiResponse<FocusSessionDto>>> StartSession([FromBody] StartSessionRequest request)
     {
@@ -31,7 +30,7 @@ public class PomodoroController : ControllerBase
         return StatusCode(StatusCodes.Status201Created, ApiResponse<FocusSessionDto>.Ok(session, "Bắt đầu phiên tập trung thành công."));
     }
 
-    /// <summary>Completes an ongoing focus session, records overtime, and updates user daily streak.</summary>
+    // Completes an ongoing focus session, records overtime, and updates user daily streak.
     [HttpPost("{id:guid}/complete")]
     public async Task<ActionResult<ApiResponse<FocusSessionDto>>> CompleteSession(
         [FromRoute] Guid id,
@@ -42,7 +41,7 @@ public class PomodoroController : ControllerBase
         return Ok(ApiResponse<FocusSessionDto>.Ok(session, "Hoàn thành phiên tập trung thành công."));
     }
 
-    /// <summary>Cancels an ongoing session and records elapsed duration.</summary>
+    // Cancels an ongoing session and records elapsed duration.
     [HttpPost("{id:guid}/cancel")]
     public async Task<ActionResult<ApiResponse<FocusSessionDto>>> CancelSession(
         [FromRoute] Guid id,
@@ -53,7 +52,7 @@ public class PomodoroController : ControllerBase
         return Ok(ApiResponse<FocusSessionDto>.Ok(session, "Đã hủy phiên tập trung."));
     }
 
-    /// <summary>Retrieves focus session history within an optional UTC date range.</summary>
+    // Retrieves focus session history within an optional UTC date range.
     [HttpGet("history")]
     public async Task<ActionResult<ApiResponse<List<FocusSessionDto>>>> GetHistory(
         [FromQuery] DateTime? fromUtc,
@@ -64,7 +63,7 @@ public class PomodoroController : ControllerBase
         return Ok(ApiResponse<List<FocusSessionDto>>.Ok(history, "Lấy lịch sử phiên tập trung thành công."));
     }
 
-    /// <summary>Retrieves summary metrics for today (pomos, total minutes, overtime minutes, and streak).</summary>
+    // Retrieves summary metrics for today (pomos, total minutes, overtime minutes, and streak).
     [HttpGet("summary")]
     public async Task<ActionResult<ApiResponse<PomodoroSummaryDto>>> GetSummary()
     {

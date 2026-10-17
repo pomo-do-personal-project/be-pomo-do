@@ -9,7 +9,7 @@ using Microsoft.Extensions.Options;
 
 namespace be_pomo_do.Application.Services;
 
-/// <summary>Provides application business workflows for user authentication, registration, token rotation, and session management.</summary>
+// Provides application business workflows for user authentication, registration, token rotation, and session management.
 public class AuthService : IAuthService
 {
     private readonly IUserRepository _userRepository;
@@ -86,6 +86,12 @@ public class AuthService : IAuthService
             throw new DomainException("Email hoặc mật khẩu không chính xác.");
         }
 
+        if (user.IsSuspended)
+        {
+            var reason = string.IsNullOrWhiteSpace(user.SuspendedReason) ? "Vi phạm điều khoản dịch vụ" : user.SuspendedReason;
+            throw new DomainException($"Tài khoản của bạn đã bị tạm khóa. Lý do: {reason}");
+        }
+
         var accessToken = _jwtTokenGenerator.GenerateAccessToken(user);
         var refreshTokenString = _jwtTokenGenerator.GenerateRefreshToken();
 
@@ -111,6 +117,12 @@ public class AuthService : IAuthService
         }
 
         var user = existingToken.User ?? throw new DomainException("Tài khoản người dùng không tồn tại.");
+
+        if (user.IsSuspended)
+        {
+            var reason = string.IsNullOrWhiteSpace(user.SuspendedReason) ? "Vi phạm điều khoản dịch vụ" : user.SuspendedReason;
+            throw new DomainException($"Tài khoản của bạn đã bị tạm khóa. Lý do: {reason}");
+        }
 
         var newRefreshTokenString = _jwtTokenGenerator.GenerateRefreshToken();
         existingToken.IsRevoked = true;

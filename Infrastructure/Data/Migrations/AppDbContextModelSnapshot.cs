@@ -22,6 +22,53 @@ namespace be_pomo_do.Infrastructure.Data.Migrations
 
             NpgsqlModelBuilderExtensions.UseIdentityByDefaultColumns(modelBuilder);
 
+            modelBuilder.Entity("be_pomo_do.Core.Entities.AdminActionHistory", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<string>("Action")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)")
+                        .HasColumnName("action");
+
+                    b.Property<Guid>("AdminId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("admin_id");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at")
+                        .HasDefaultValueSql("NOW()");
+
+                    b.Property<string>("Details")
+                        .HasColumnType("text")
+                        .HasColumnName("details");
+
+                    b.Property<string>("Reason")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)")
+                        .HasColumnName("reason");
+
+                    b.Property<Guid>("TargetUserId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("target_user_id");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("AdminId");
+
+                    b.HasIndex("CreatedAt");
+
+                    b.HasIndex("TargetUserId");
+
+                    b.ToTable("admin_action_histories", (string)null);
+                });
+
             modelBuilder.Entity("be_pomo_do.Core.Entities.DailyStreak", b =>
                 {
                     b.Property<Guid>("Id")
@@ -170,6 +217,77 @@ namespace be_pomo_do.Infrastructure.Data.Migrations
                     b.HasIndex("UserId");
 
                     b.ToTable("refresh_tokens", (string)null);
+                });
+
+            modelBuilder.Entity("be_pomo_do.Core.Entities.ScheduledNotification", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<Guid>("AdminId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("admin_id");
+
+                    b.Property<string>("Category")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)")
+                        .HasDefaultValue("info")
+                        .HasColumnName("category");
+
+                    b.Property<string>("Content")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("content");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at")
+                        .HasDefaultValueSql("NOW()");
+
+                    b.Property<bool>("IsSent")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(false)
+                        .HasColumnName("is_sent");
+
+                    b.Property<string>("RecipientEmails")
+                        .HasColumnType("text")
+                        .HasColumnName("recipient_emails");
+
+                    b.Property<DateTime>("ScheduledAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("scheduled_at");
+
+                    b.Property<string>("Scope")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)")
+                        .HasDefaultValue("direct")
+                        .HasColumnName("scope");
+
+                    b.Property<DateTime?>("SentAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("sent_at");
+
+                    b.Property<string>("Title")
+                        .IsRequired()
+                        .HasMaxLength(255)
+                        .HasColumnType("character varying(255)")
+                        .HasColumnName("title");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("AdminId");
+
+                    b.HasIndex("IsSent", "ScheduledAt");
+
+                    b.ToTable("scheduled_notifications", (string)null);
                 });
 
             modelBuilder.Entity("be_pomo_do.Core.Entities.Subtask", b =>
@@ -362,6 +480,18 @@ namespace be_pomo_do.Infrastructure.Data.Migrations
                         .HasColumnType("character varying(255)")
                         .HasColumnName("email");
 
+                    b.Property<bool>("IsAdmin")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(false)
+                        .HasColumnName("is_admin");
+
+                    b.Property<bool>("IsSuspended")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(false)
+                        .HasColumnName("is_suspended");
+
                     b.Property<string>("PasswordHash")
                         .HasColumnType("text")
                         .HasColumnName("password_hash");
@@ -374,6 +504,15 @@ namespace be_pomo_do.Infrastructure.Data.Migrations
                     b.Property<string>("ProviderId")
                         .HasColumnType("text")
                         .HasColumnName("provider_id");
+
+                    b.Property<DateTime?>("SuspendedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("suspended_at");
+
+                    b.Property<string>("SuspendedReason")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)")
+                        .HasColumnName("suspended_reason");
 
                     b.HasKey("Id");
 
@@ -475,6 +614,25 @@ namespace be_pomo_do.Infrastructure.Data.Migrations
                     b.ToTable("user_settings", (string)null);
                 });
 
+            modelBuilder.Entity("be_pomo_do.Core.Entities.AdminActionHistory", b =>
+                {
+                    b.HasOne("be_pomo_do.Core.Entities.User", "AdminUser")
+                        .WithMany("PerformedAdminActions")
+                        .HasForeignKey("AdminId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("be_pomo_do.Core.Entities.User", "TargetUser")
+                        .WithMany("ReceivedAdminActions")
+                        .HasForeignKey("TargetUserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("AdminUser");
+
+                    b.Navigation("TargetUser");
+                });
+
             modelBuilder.Entity("be_pomo_do.Core.Entities.DailyStreak", b =>
                 {
                     b.HasOne("be_pomo_do.Core.Entities.User", "User")
@@ -513,6 +671,17 @@ namespace be_pomo_do.Infrastructure.Data.Migrations
                         .IsRequired();
 
                     b.Navigation("User");
+                });
+
+            modelBuilder.Entity("be_pomo_do.Core.Entities.ScheduledNotification", b =>
+                {
+                    b.HasOne("be_pomo_do.Core.Entities.User", "AdminUser")
+                        .WithMany("ScheduledNotifications")
+                        .HasForeignKey("AdminId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("AdminUser");
                 });
 
             modelBuilder.Entity("be_pomo_do.Core.Entities.Subtask", b =>
@@ -596,7 +765,13 @@ namespace be_pomo_do.Infrastructure.Data.Migrations
                 {
                     b.Navigation("FocusSessions");
 
+                    b.Navigation("PerformedAdminActions");
+
+                    b.Navigation("ReceivedAdminActions");
+
                     b.Navigation("RefreshTokens");
+
+                    b.Navigation("ScheduledNotifications");
 
                     b.Navigation("Settings");
 

@@ -5,25 +5,23 @@ using be_pomo_do.Core.Exceptions;
 
 namespace be_pomo_do.Application.Services;
 
-/// <summary>Application service implementation for Tag management.</summary>
+// Application service implementation for Tag management.
 public class TagService : ITagService
 {
     private readonly ITagRepository _tagRepository;
 
-    /// <summary>Initializes a new instance of <see cref="TagService"/>.</summary>
+    // Initializes a new instance of TagService.
     public TagService(ITagRepository tagRepository)
     {
         _tagRepository = tagRepository ?? throw new ArgumentNullException(nameof(tagRepository));
     }
 
-    /// <inheritdoc/>
     public async Task<List<TagDto>> GetTagsAsync(Guid userId)
     {
         var tags = await _tagRepository.GetUserTagsAsync(userId);
         return tags.Select(MapToDto).ToList();
     }
 
-    /// <inheritdoc/>
     public async Task<TagDto> GetTagByIdAsync(Guid tagId, Guid userId)
     {
         var tag = await _tagRepository.GetTagByIdAsync(tagId, userId);
@@ -35,7 +33,6 @@ public class TagService : ITagService
         return MapToDto(tag);
     }
 
-    /// <inheritdoc/>
     public async Task<TagDto> CreateTagAsync(Guid userId, CreateTagRequest request)
     {
         var cleanName = request.Name.Trim();
@@ -65,7 +62,6 @@ public class TagService : ITagService
         return MapToDto(tag);
     }
 
-    /// <inheritdoc/>
     public async Task<TagDto> UpdateTagAsync(Guid tagId, Guid userId, UpdateTagRequest request)
     {
         var tag = await _tagRepository.GetTagByIdAsync(tagId, userId);
@@ -94,7 +90,6 @@ public class TagService : ITagService
         return MapToDto(tag);
     }
 
-    /// <inheritdoc/>
     public async Task DeleteTagAsync(Guid tagId, Guid userId)
     {
         var tag = await _tagRepository.GetTagByIdAsync(tagId, userId);

@@ -4,34 +4,34 @@ using TaskStatus = be_pomo_do.Core.ValueObjects.TaskStatus;
 
 namespace be_pomo_do.Application.DTOs.Tasks;
 
-/// <summary>Request payload for updating an existing task.</summary>
+// Request payload for updating an existing task.
 public class UpdateTaskRequest
 {
-    /// <summary>Updated title of the task.</summary>
+    // Updated title of the task.
     [Required(ErrorMessage = "Tiêu đề công việc không được để trống.")]
     [MaxLength(255, ErrorMessage = "Tiêu đề công việc tối đa 255 ký tự.")]
     public string Title { get; set; } = string.Empty;
 
-    /// <summary>Updated priority classification.</summary>
+    // Updated priority classification.
     public Priority Priority { get; set; }
 
-    /// <summary>Updated completion status.</summary>
+    // Updated completion status.
     public TaskStatus Status { get; set; }
 
-    /// <summary>Updated estimated pomodoros count.</summary>
+    // Updated estimated pomodoros count.
     [Range(1, 100, ErrorMessage = "Số phiên Pomodoro ước tính phải từ 1 đến 100.")]
     public int EstimatedPomodoros { get; set; }
 
-    /// <summary>Updated estimated minutes.</summary>
+    // Updated estimated minutes.
     [Range(1, 3600, ErrorMessage = "Thời gian ước tính phải từ 1 đến 3600 phút.")]
     public int EstimatedMinutes { get; set; }
 
-    /// <summary>Updated deadline date in UTC.</summary>
+    // Updated deadline date in UTC.
     public DateTime? DueDate { get; set; }
 
-    /// <summary>Indicates whether this task is marked as a quick-add item.</summary>
+    // Indicates whether this task is marked as a quick-add item.
     public bool IsQuickAdd { get; set; }
 
-    /// <summary>Updated list of tag IDs.</summary>
+    // Updated list of tag IDs.
     public List<Guid>? TagIds { get; set; }
 }

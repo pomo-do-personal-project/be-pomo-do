@@ -1,14 +1,14 @@
 namespace be_pomo_do.Application.DTOs.Tasks;
 
-/// <summary>Represents a tag associated with a task.</summary>
+// Represents a tag associated with a task.
 public class TagDto
 {
-    /// <summary>Unique identifier of the tag.</summary>
+    // Unique identifier of the tag.
     public Guid Id { get; set; }
 
-    /// <summary>Display name of the tag.</summary>
+    // Display name of the tag.
     public string Name { get; set; } = string.Empty;
 
-    /// <summary>Hex color string for badge rendering (e.g. #3B82F6).</summary>
+    // Hex color string for badge rendering (e.g. #3B82F6).
     public string ColorHex { get; set; } = "#3B82F6";
 }

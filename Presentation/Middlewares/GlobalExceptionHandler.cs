@@ -18,7 +18,6 @@ public class GlobalExceptionHandler : IExceptionHandler
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
     }
 
-    /// <inheritdoc/>
     public async ValueTask<bool> TryHandleAsync(
         HttpContext httpContext,
         Exception exception,

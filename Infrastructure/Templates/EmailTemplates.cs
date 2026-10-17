@@ -1,6 +1,6 @@
 namespace be_pomo_do.Infrastructure.Templates;
 
-/// <summary>HTML Email templates for OTP verification and password reset workflows.</summary>
+// HTML Email templates for OTP verification and password reset workflows.
 public static class EmailTemplates
 {
     // Tạo HTML template cho email chứa link đổi mật khẩu

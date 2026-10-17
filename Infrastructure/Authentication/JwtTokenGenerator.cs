@@ -31,6 +31,13 @@ public class JwtTokenGenerator : IJwtTokenGenerator
             new(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString())
         };
 
+        if (user.IsAdmin)
+        {
+            claims.Add(new Claim(ClaimTypes.Role, "Admin"));
+            claims.Add(new Claim("role", "Admin"));
+            claims.Add(new Claim("is_admin", "true"));
+        }
+
         var tokenDescriptor = new SecurityTokenDescriptor
         {
             Subject = new ClaimsIdentity(claims),

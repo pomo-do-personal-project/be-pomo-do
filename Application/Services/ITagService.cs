@@ -2,21 +2,21 @@ using be_pomo_do.Application.DTOs.Tasks;
 
 namespace be_pomo_do.Application.Services;
 
-/// <summary>Service contract for Tag management operations.</summary>
+// Service contract for Tag management operations.
 public interface ITagService
 {
-    /// <summary>Retrieves all tags belonging to the specified user.</summary>
+    // Retrieves all tags belonging to the specified user.
     Task<List<TagDto>> GetTagsAsync(Guid userId);
 
-    /// <summary>Retrieves details of a specific tag by ID.</summary>
+    // Retrieves details of a specific tag by ID.
     Task<TagDto> GetTagByIdAsync(Guid tagId, Guid userId);
 
-    /// <summary>Creates a new tag for the user.</summary>
+    // Creates a new tag for the user.
     Task<TagDto> CreateTagAsync(Guid userId, CreateTagRequest request);
 
-    /// <summary>Updates an existing tag's name or color.</summary>
+    // Updates an existing tag's name or color.
     Task<TagDto> UpdateTagAsync(Guid tagId, Guid userId, UpdateTagRequest request);
 
-    /// <summary>Deletes a tag and removes all task associations.</summary>
+    // Deletes a tag and removes all task associations.
     Task DeleteTagAsync(Guid tagId, Guid userId);
 }

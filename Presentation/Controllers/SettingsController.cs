@@ -7,7 +7,7 @@ using Microsoft.AspNetCore.Mvc;
 
 namespace be_pomo_do.Presentation.Controllers;
 
-/// <summary>Endpoints for managing user preferences and Pomodoro timer settings.</summary>
+// Endpoints for managing user preferences and Pomodoro timer settings.
 [ApiController]
 [Authorize]
 [Route("api/[controller]")]

@@ -3,48 +3,48 @@ using TaskStatus = be_pomo_do.Core.ValueObjects.TaskStatus;
 
 namespace be_pomo_do.Application.DTOs.Tasks;
 
-/// <summary>Represents a full task item payload including subtasks and assigned tags.</summary>
+// Represents a full task item payload including subtasks and assigned tags.
 public class TaskDto
 {
-    /// <summary>Unique identifier of the task.</summary>
+    // Unique identifier of the task.
     public Guid Id { get; set; }
 
-    /// <summary>Identifier of the user owning the task.</summary>
+    // Identifier of the user owning the task.
     public Guid UserId { get; set; }
 
-    /// <summary>Title of the task.</summary>
+    // Title of the task.
     public string Title { get; set; } = string.Empty;
 
-    /// <summary>Eisenhower matrix priority level.</summary>
+    // Eisenhower matrix priority level.
     public Priority Priority { get; set; }
 
-    /// <summary>Current completion status.</summary>
+    // Current completion status.
     public TaskStatus Status { get; set; }
 
-    /// <summary>Estimated pomodoro intervals planned for this task.</summary>
+    // Estimated pomodoro intervals planned for this task.
     public int EstimatedPomodoros { get; set; }
 
-    /// <summary>Total estimated minutes planned for this task.</summary>
+    // Total estimated minutes planned for this task.
     public int EstimatedMinutes { get; set; }
 
-    /// <summary>Total completed Pomodoro sessions for this task.</summary>
+    // Total completed Pomodoro sessions for this task.
     public int CompletedPomodoros { get; set; }
 
-    /// <summary>Optional deadline date and time in UTC.</summary>
+    // Optional deadline date and time in UTC.
     public DateTime? DueDate { get; set; }
 
-    /// <summary>Indicates whether this task was created via quick-add during a focus session.</summary>
+    // Indicates whether this task was created via quick-add during a focus session.
     public bool IsQuickAdd { get; set; }
 
-    /// <summary>Creation timestamp in UTC.</summary>
+    // Creation timestamp in UTC.
     public DateTime CreatedAt { get; set; }
 
-    /// <summary>Last updated timestamp in UTC.</summary>
+    // Last updated timestamp in UTC.
     public DateTime? UpdatedAt { get; set; }
 
-    /// <summary>List of child subtasks.</summary>
+    // List of child subtasks.
     public List<SubtaskDto> Subtasks { get; set; } = [];
 
-    /// <summary>List of tags associated with this task.</summary>
+    // List of tags associated with this task.
     public List<TagDto> Tags { get; set; } = [];
 }

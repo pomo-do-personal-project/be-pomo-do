@@ -65,6 +65,8 @@ public static class DependencyInjection
         services.AddSingleton<Application.Common.Interfaces.IEmailReportQueue, Services.RedisEmailReportQueue>();
         services.AddHostedService<BackgroundServices.EmailReportConsumerWorker>();
         services.AddHostedService<BackgroundServices.EmailReportSchedulerWorker>();
+        services.AddSingleton<Application.Common.ScheduledNotificationSignal>();
+        services.AddHostedService<BackgroundServices.AdminScheduledNotificationWorker>();
 
         // 8. Scrutor: Tự động quét và đăng ký tất cả các class có đuôi Repository (map với I...Repository tương ứng)
         services.Scan(scan => scan
@@ -76,10 +78,7 @@ public static class DependencyInjection
         return services;
     }
 
-    /// <summary>
-    /// Chuyển đổi định dạng cấu hình Redis nếu người dùng copy dạng CLI hoặc URL Upstash (redis://...)
-    /// sang dạng chuẩn của StackExchange.Redis: "host:port,password=...,ssl=True,abortConnect=False"
-    /// </summary>
+    // Chuyển đổi định dạng cấu hình Redis Upstash sang dạng chuẩn StackExchange.Redis
     private static string NormalizeRedisConnectionString(string? rawConn)
     {
         if (string.IsNullOrWhiteSpace(rawConn)) return string.Empty;
@@ -121,7 +120,7 @@ public static class DependencyInjection
             }
         }
 
-        // Đảm bảo host có kèm cổng :6379 nếu chưa chỉ định cổng (tránh StackExchange.Redis tự nhảy sang port 6380 khi bật ssl=True)
+        // Đảm bảo host có kèm cổng :6379 nếu chưa chỉ định cổng
         var firstComma = trimmed.IndexOf(',');
         var hostPart = firstComma >= 0 ? trimmed[..firstComma].Trim() : trimmed;
         if (!hostPart.Contains(':') && !string.IsNullOrEmpty(hostPart))
@@ -133,9 +132,7 @@ public static class DependencyInjection
         return trimmed;
     }
 
-    /// <summary>
-    /// Chuyển đổi URI PostgreSQL (postgresql://...) từ Supabase sang định dạng chuẩn ADO.NET (Host=...;Port=...;...)
-    /// </summary>
+    // Chuyển đổi URI PostgreSQL sang chuỗi kết nối chuẩn ADO.NET
     private static string NormalizePostgresConnectionString(string? rawConn)
     {
         if (string.IsNullOrWhiteSpace(rawConn)) return string.Empty;

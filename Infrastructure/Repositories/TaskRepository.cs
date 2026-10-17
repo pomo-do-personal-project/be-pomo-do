@@ -6,21 +6,20 @@ using Microsoft.EntityFrameworkCore;
 
 namespace be_pomo_do.Infrastructure.Repositories;
 
-/// <summary>Entity Framework Core implementation of <see cref="ITaskRepository"/>.</summary>
+// Entity Framework Core implementation of ITaskRepository.
 public class TaskRepository : ITaskRepository
 {
     private readonly AppDbContext _context;
     private readonly ICancellationTokenProvider _ctProvider;
     private CancellationToken Ct => _ctProvider.Token;
 
-    /// <summary>Initializes a new instance of <see cref="TaskRepository"/>.</summary>
+    // Initializes a new instance of TaskRepository.
     public TaskRepository(AppDbContext context, ICancellationTokenProvider cancellationTokenProvider)
     {
         _context = context ?? throw new ArgumentNullException(nameof(context));
         _ctProvider = cancellationTokenProvider ?? throw new ArgumentNullException(nameof(cancellationTokenProvider));
     }
 
-    /// <inheritdoc/>
     public async Task<List<TaskItem>> GetUserTasksAsync(Guid userId, TaskFilterParams filterParams)
     {
         IQueryable<TaskItem> query = _context.Tasks.AsNoTracking();
@@ -74,7 +73,6 @@ public class TaskRepository : ITaskRepository
             .ToListAsync(Ct);
     }
 
-    /// <inheritdoc/>
     public async Task<TaskItem?> GetTaskByIdAsync(Guid taskId, Guid userId, bool includeDeleted = false)
     {
         IQueryable<TaskItem> query = _context.Tasks;
@@ -92,38 +90,32 @@ public class TaskRepository : ITaskRepository
             .FirstOrDefaultAsync(t => t.Id == taskId && t.UserId == userId, Ct);
     }
 
-    /// <inheritdoc/>
     public async Task AddTaskAsync(TaskItem task)
     {
         await _context.Tasks.AddAsync(task, Ct);
     }
 
-    /// <inheritdoc/>
     public async Task<Subtask?> GetSubtaskByIdAsync(Guid subtaskId, Guid taskId)
     {
         return await _context.Subtasks
             .FirstOrDefaultAsync(s => s.Id == subtaskId && s.TaskId == taskId, Ct);
     }
 
-    /// <inheritdoc/>
     public async Task AddSubtaskAsync(Subtask subtask)
     {
         await _context.Subtasks.AddAsync(subtask, Ct);
     }
 
-    /// <inheritdoc/>
     public void RemoveSubtask(Subtask subtask)
     {
         _context.Subtasks.Remove(subtask);
     }
 
-    /// <inheritdoc/>
     public void RemoveTask(TaskItem task)
     {
         _context.Tasks.Remove(task);
     }
 
-    /// <inheritdoc/>
     public async Task<List<Tag>> GetUserTagsByIdsAsync(Guid userId, List<Guid> tagIds)
     {
         if (tagIds.Count == 0) return [];
@@ -133,7 +125,6 @@ public class TaskRepository : ITaskRepository
             .ToListAsync(Ct);
     }
 
-    /// <inheritdoc/>
     public async Task SaveChangesAsync()
     {
         await _context.SaveChangesAsync(Ct);

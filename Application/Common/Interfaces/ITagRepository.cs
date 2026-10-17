@@ -2,24 +2,24 @@ using be_pomo_do.Core.Entities;
 
 namespace be_pomo_do.Application.Common.Interfaces;
 
-/// <summary>Repository interface for Tag database operations.</summary>
+// Repository interface for Tag database operations.
 public interface ITagRepository
 {
-    /// <summary>Retrieves all tags belonging to the specified user.</summary>
+    // Retrieves all tags belonging to the specified user.
     Task<List<Tag>> GetUserTagsAsync(Guid userId);
 
-    /// <summary>Retrieves a single tag by ID and User ID.</summary>
+    // Retrieves a single tag by ID and User ID.
     Task<Tag?> GetTagByIdAsync(Guid tagId, Guid userId);
 
-    /// <summary>Checks whether a tag with the specified name already exists for the user.</summary>
+    // Checks whether a tag with the specified name already exists for the user.
     Task<bool> TagNameExistsAsync(Guid userId, string name, Guid? excludeId = null);
 
-    /// <summary>Adds a new tag to persistence.</summary>
+    // Adds a new tag to persistence.
     Task AddTagAsync(Tag tag);
 
-    /// <summary>Removes a tag permanently.</summary>
+    // Removes a tag permanently.
     void RemoveTag(Tag tag);
 
-    /// <summary>Persists all tracked changes to the database.</summary>
+    // Persists all tracked changes to the database.
     Task SaveChangesAsync();
 }

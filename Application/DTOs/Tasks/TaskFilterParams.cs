@@ -3,30 +3,30 @@ using TaskStatus = be_pomo_do.Core.ValueObjects.TaskStatus;
 
 namespace be_pomo_do.Application.DTOs.Tasks;
 
-/// <summary>Query parameters for filtering, searching, and sorting tasks.</summary>
+// Query parameters for filtering, searching, and sorting tasks.
 public class TaskFilterParams
 {
-    /// <summary>Filter tasks by execution status (Todo, InProgress, Completed, Cancelled).</summary>
+    // Filter tasks by execution status (Todo, InProgress, Completed, Cancelled).
     public TaskStatus? Status { get; set; }
 
-    /// <summary>Filter tasks by Eisenhower matrix priority.</summary>
+    // Filter tasks by Eisenhower matrix priority.
     public Priority? Priority { get; set; }
 
-    /// <summary>Filter tasks associated with a specific tag.</summary>
+    // Filter tasks associated with a specific tag.
     public Guid? TagId { get; set; }
 
-    /// <summary>Filter tasks by whether they were quick-added during an active session.</summary>
+    // Filter tasks by whether they were quick-added during an active session.
     public bool? IsQuickAdd { get; set; }
 
-    /// <summary>Search keyword for task title.</summary>
+    // Search keyword for task title.
     public string? Search { get; set; }
 
-    /// <summary>If true, queries only soft-deleted tasks in the trash bin.</summary>
+    // If true, queries only soft-deleted tasks in the trash bin.
     public bool InTrash { get; set; } = false;
 
-    /// <summary>Sort column: "createdAt", "dueDate", "priority", "title". Defaults to "createdAt".</summary>
+    // Sort column: "createdAt", "dueDate", "priority", "title". Defaults to "createdAt".
     public string? SortBy { get; set; } = "createdAt";
 
-    /// <summary>Sort direction: true for descending, false for ascending. Defaults to true.</summary>
+    // Sort direction: true for descending, false for ascending. Defaults to true.
     public bool IsDescending { get; set; } = true;
 }

@@ -2,21 +2,21 @@ using be_pomo_do.Application.DTOs.Pomodoro;
 
 namespace be_pomo_do.Application.Services;
 
-/// <summary>Service contract for executing Pomodoro focus sessions and calculating daily streaks.</summary>
+// Service contract for executing Pomodoro focus sessions and calculating daily streaks.
 public interface IPomodoroService
 {
-    /// <summary>Starts a new timer session.</summary>
+    // Starts a new timer session.
     Task<FocusSessionDto> StartSessionAsync(Guid userId, StartSessionRequest request);
 
-    /// <summary>Completes an ongoing session with overtime calculations and updates user streak.</summary>
+    // Completes an ongoing session with overtime calculations and updates user streak.
     Task<FocusSessionDto> CompleteSessionAsync(Guid sessionId, Guid userId, CompleteSessionRequest request);
 
-    /// <summary>Cancels an ongoing session.</summary>
+    // Cancels an ongoing session.
     Task<FocusSessionDto> CancelSessionAsync(Guid sessionId, Guid userId, CancelSessionRequest request);
 
-    /// <summary>Retrieves session history within an optional UTC date range.</summary>
+    // Retrieves session history within an optional UTC date range.
     Task<List<FocusSessionDto>> GetHistoryAsync(Guid userId, DateTime? fromUtc = null, DateTime? toUtc = null);
 
-    /// <summary>Retrieves summary statistics for today (pomos, focus minutes, overtime minutes, current streak).</summary>
+    // Retrieves summary statistics for today (pomos, focus minutes, overtime minutes, current streak).
     Task<PomodoroSummaryDto> GetSummaryAsync(Guid userId);
 }

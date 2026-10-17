@@ -5,11 +5,7 @@ namespace be_pomo_do.Infrastructure.Data;
 
 public class AppDbContext : DbContext
 {
-    /// <summary>Initializes a new instance of the <see cref="AppDbContext"/> class.</summary>
-    /// <param name="options">The options to be used by a <see cref="DbContext"/>.</param>
-    public AppDbContext(DbContextOptions<AppDbContext> options) : base(options)
-    {
-    }
+    public AppDbContext(DbContextOptions<AppDbContext> options) : base(options) { }
 
     public DbSet<User> Users => Set<User>();
     public DbSet<UserSettings> UserSettings => Set<UserSettings>();
@@ -20,6 +16,8 @@ public class AppDbContext : DbContext
     public DbSet<TaskTag> TaskTags => Set<TaskTag>();
     public DbSet<FocusSession> FocusSessions => Set<FocusSession>();
     public DbSet<RefreshToken> RefreshTokens => Set<RefreshToken>();
+    public DbSet<AdminActionHistory> AdminActionHistories => Set<AdminActionHistory>();
+    public DbSet<ScheduledNotification> ScheduledNotifications => Set<ScheduledNotification>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -39,37 +37,20 @@ public class AppDbContext : DbContext
             entity.Property(e => e.DisplayName).HasColumnName("display_name").HasMaxLength(255).IsRequired();
             entity.Property(e => e.AvatarUrl).HasColumnName("avatar_url");
             entity.Property(e => e.CreatedAt).HasColumnName("created_at").HasDefaultValueSql("NOW()");
+            entity.Property(e => e.IsAdmin).HasColumnName("is_admin").HasDefaultValue(false);
+            entity.Property(e => e.IsSuspended).HasColumnName("is_suspended").HasDefaultValue(false);
+            entity.Property(e => e.SuspendedReason).HasColumnName("suspended_reason").HasMaxLength(500);
+            entity.Property(e => e.SuspendedAt).HasColumnName("suspended_at");
 
-            // Relationships
-            entity.HasOne(e => e.Settings)
-                  .WithOne(s => s.User)
-                  .HasForeignKey<UserSettings>(s => s.UserId)
-                  .OnDelete(DeleteBehavior.Cascade);
-
-            entity.HasOne(e => e.Streak)
-                  .WithOne(s => s.User)
-                  .HasForeignKey<DailyStreak>(s => s.UserId)
-                  .OnDelete(DeleteBehavior.Cascade);
-
-            entity.HasMany(e => e.Tasks)
-                  .WithOne(t => t.User)
-                  .HasForeignKey(t => t.UserId)
-                  .OnDelete(DeleteBehavior.Cascade);
-
-            entity.HasMany(e => e.Tags)
-                  .WithOne(t => t.User)
-                  .HasForeignKey(t => t.UserId)
-                  .OnDelete(DeleteBehavior.Cascade);
-
-            entity.HasMany(e => e.FocusSessions)
-                  .WithOne(f => f.User)
-                  .HasForeignKey(f => f.UserId)
-                  .OnDelete(DeleteBehavior.Cascade);
-
-            entity.HasMany(e => e.RefreshTokens)
-                  .WithOne(r => r.User)
-                  .HasForeignKey(r => r.UserId)
-                  .OnDelete(DeleteBehavior.Cascade);
+            entity.HasOne(e => e.Settings).WithOne(s => s.User).HasForeignKey<UserSettings>(s => s.UserId).OnDelete(DeleteBehavior.Cascade);
+            entity.HasOne(e => e.Streak).WithOne(s => s.User).HasForeignKey<DailyStreak>(s => s.UserId).OnDelete(DeleteBehavior.Cascade);
+            entity.HasMany(e => e.Tasks).WithOne(t => t.User).HasForeignKey(t => t.UserId).OnDelete(DeleteBehavior.Cascade);
+            entity.HasMany(e => e.Tags).WithOne(t => t.User).HasForeignKey(t => t.UserId).OnDelete(DeleteBehavior.Cascade);
+            entity.HasMany(e => e.FocusSessions).WithOne(f => f.User).HasForeignKey(f => f.UserId).OnDelete(DeleteBehavior.Cascade);
+            entity.HasMany(e => e.RefreshTokens).WithOne(r => r.User).HasForeignKey(r => r.UserId).OnDelete(DeleteBehavior.Cascade);
+            entity.HasMany(e => e.PerformedAdminActions).WithOne(a => a.AdminUser).HasForeignKey(a => a.AdminId).OnDelete(DeleteBehavior.Restrict);
+            entity.HasMany(e => e.ReceivedAdminActions).WithOne(a => a.TargetUser).HasForeignKey(a => a.TargetUserId).OnDelete(DeleteBehavior.Cascade);
+            entity.HasMany(e => e.ScheduledNotifications).WithOne(s => s.AdminUser).HasForeignKey(s => s.AdminId).OnDelete(DeleteBehavior.Restrict);
         });
 
         // 2. UserSettings
@@ -126,18 +107,10 @@ public class AppDbContext : DbContext
             entity.Property(e => e.CreatedAt).HasColumnName("created_at").HasDefaultValueSql("NOW()");
             entity.Property(e => e.UpdatedAt).HasColumnName("updated_at");
 
-            // Soft delete global query filter
             entity.HasQueryFilter(e => !e.IsDeleted);
 
-            entity.HasMany(e => e.Subtasks)
-                  .WithOne(s => s.Task)
-                  .HasForeignKey(s => s.TaskId)
-                  .OnDelete(DeleteBehavior.Cascade);
-
-            entity.HasMany(e => e.FocusSessions)
-                  .WithOne(f => f.Task)
-                  .HasForeignKey(f => f.TaskId)
-                  .OnDelete(DeleteBehavior.SetNull);
+            entity.HasMany(e => e.Subtasks).WithOne(s => s.Task).HasForeignKey(s => s.TaskId).OnDelete(DeleteBehavior.Cascade);
+            entity.HasMany(e => e.FocusSessions).WithOne(f => f.Task).HasForeignKey(f => f.TaskId).OnDelete(DeleteBehavior.SetNull);
         });
 
         // 5. Subtasks
@@ -163,7 +136,7 @@ public class AppDbContext : DbContext
             entity.Property(e => e.ColorHex).HasColumnName("color_hex").HasMaxLength(7).HasDefaultValue("#3B82F6");
         });
 
-        // 7. TaskTags (many-to-many join table)
+        // 7. TaskTags
         modelBuilder.Entity<TaskTag>(entity =>
         {
             entity.ToTable("task_tags");
@@ -171,15 +144,8 @@ public class AppDbContext : DbContext
             entity.Property(e => e.TaskId).HasColumnName("task_id");
             entity.Property(e => e.TagId).HasColumnName("tag_id");
 
-            entity.HasOne(e => e.Task)
-                  .WithMany(t => t.TaskTags)
-                  .HasForeignKey(e => e.TaskId)
-                  .OnDelete(DeleteBehavior.Cascade);
-
-            entity.HasOne(e => e.Tag)
-                  .WithMany(t => t.TaskTags)
-                  .HasForeignKey(e => e.TagId)
-                  .OnDelete(DeleteBehavior.Cascade);
+            entity.HasOne(e => e.Task).WithMany(t => t.TaskTags).HasForeignKey(e => e.TaskId).OnDelete(DeleteBehavior.Cascade);
+            entity.HasOne(e => e.Tag).WithMany(t => t.TaskTags).HasForeignKey(e => e.TagId).OnDelete(DeleteBehavior.Cascade);
         });
 
         // 8. FocusSessions
@@ -214,6 +180,45 @@ public class AppDbContext : DbContext
             entity.Property(e => e.CreatedAt).HasColumnName("created_at").HasDefaultValueSql("NOW()");
             entity.Property(e => e.IsRevoked).HasColumnName("is_revoked").HasDefaultValue(false);
             entity.Property(e => e.ReplacedByToken).HasColumnName("replaced_by_token");
+        });
+
+        // 10. AdminActionHistories
+        modelBuilder.Entity<AdminActionHistory>(entity =>
+        {
+            entity.ToTable("admin_action_histories");
+            entity.HasKey(e => e.Id);
+            entity.Property(e => e.Id).HasColumnName("id");
+            entity.Property(e => e.AdminId).HasColumnName("admin_id").IsRequired();
+            entity.Property(e => e.TargetUserId).HasColumnName("target_user_id").IsRequired();
+            entity.Property(e => e.Action).HasColumnName("action").HasMaxLength(100).IsRequired();
+            entity.Property(e => e.Reason).HasColumnName("reason").HasMaxLength(500);
+            entity.Property(e => e.Details).HasColumnName("details").HasColumnType("text");
+            entity.Property(e => e.CreatedAt).HasColumnName("created_at").HasDefaultValueSql("NOW()");
+
+            entity.HasIndex(e => e.AdminId);
+            entity.HasIndex(e => e.TargetUserId);
+            entity.HasIndex(e => e.CreatedAt);
+        });
+
+        // 11. ScheduledNotifications
+        modelBuilder.Entity<ScheduledNotification>(entity =>
+        {
+            entity.ToTable("scheduled_notifications");
+            entity.HasKey(e => e.Id);
+            entity.Property(e => e.Id).HasColumnName("id");
+            entity.Property(e => e.AdminId).HasColumnName("admin_id").IsRequired();
+            entity.Property(e => e.Title).HasColumnName("title").HasMaxLength(255).IsRequired();
+            entity.Property(e => e.Content).HasColumnName("content").HasColumnType("text").IsRequired();
+            entity.Property(e => e.Category).HasColumnName("category").HasMaxLength(50).HasDefaultValue("info");
+            entity.Property(e => e.Scope).HasColumnName("scope").HasMaxLength(50).HasDefaultValue("direct");
+            entity.Property(e => e.RecipientEmails).HasColumnName("recipient_emails").HasColumnType("text");
+            entity.Property(e => e.ScheduledAt).HasColumnName("scheduled_at").IsRequired();
+            entity.Property(e => e.IsSent).HasColumnName("is_sent").HasDefaultValue(false);
+            entity.Property(e => e.SentAt).HasColumnName("sent_at");
+            entity.Property(e => e.CreatedAt).HasColumnName("created_at").HasDefaultValueSql("NOW()");
+
+            entity.HasIndex(e => new { e.IsSent, e.ScheduledAt });
+            entity.HasIndex(e => e.AdminId);
         });
     }
 }

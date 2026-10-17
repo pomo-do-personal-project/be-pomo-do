@@ -3,17 +3,16 @@ using Microsoft.AspNetCore.Http;
 
 namespace be_pomo_do.Infrastructure.Services;
 
-/// <summary>Resolves CancellationToken from active HttpContext RequestAborted.</summary>
+// Resolves CancellationToken from active HttpContext RequestAborted.
 public class HttpContextCancellationTokenProvider : ICancellationTokenProvider
 {
     private readonly IHttpContextAccessor _httpContextAccessor;
 
-    /// <summary>Initializes a new instance of <see cref="HttpContextCancellationTokenProvider"/>.</summary>
+    // Initializes a new instance of HttpContextCancellationTokenProvider.
     public HttpContextCancellationTokenProvider(IHttpContextAccessor httpContextAccessor)
     {
         _httpContextAccessor = httpContextAccessor ?? throw new ArgumentNullException(nameof(httpContextAccessor));
     }
 
-    /// <inheritdoc/>
     public CancellationToken Token => _httpContextAccessor.HttpContext?.RequestAborted ?? CancellationToken.None;
 }

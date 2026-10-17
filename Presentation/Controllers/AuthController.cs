@@ -6,23 +6,20 @@ using Microsoft.AspNetCore.Mvc;
 
 namespace be_pomo_do.Presentation.Controllers;
 
-/// <summary>Handles authentication, registration, token rotation, and session management.</summary>
+// Handles authentication, registration, token rotation, and session management.
 [ApiController]
 [Route("api/[controller]")]
 public class AuthController : ControllerBase
 {
     private readonly IAuthService _authService;
 
-    /// <summary>Initializes a new instance of <see cref="AuthController"/> with traditional constructor dependency injection.</summary>
-    /// <param name="authService">The authentication application service instance.</param>
+    // Initializes a new instance of AuthController with traditional constructor dependency injection.
     public AuthController(IAuthService authService)
     {
         _authService = authService ?? throw new ArgumentNullException(nameof(authService));
     }
 
-    /// <summary>Dispatches a 6-digit OTP verification code to the requested email for account registration.</summary>
-    /// <param name="request">The OTP dispatch request parameters.</param>
-    /// <returns>An API response indicating dispatch status.</returns>
+    // Dispatches a 6-digit OTP verification code to the requested email for account registration.
     [HttpPost("otp/send")]
     public async Task<ActionResult<ApiResponse<string>>> SendOtp([FromBody] SendOtpRequest request)
     {
@@ -30,9 +27,7 @@ public class AuthController : ControllerBase
         return Ok(ApiResponse<string>.Ok("Mã OTP đã được gửi về email của bạn. Mã có hiệu lực trong 5 phút."));
     }
 
-    /// <summary>Registers a new user account with verified OTP code (requires explicit login for tokens).</summary>
-    /// <param name="request">The user registration payload including the verified OTP.</param>
-    /// <returns>An API response containing created user profile without authentication tokens.</returns>
+    // Registers a new user account with verified OTP code (requires explicit login for tokens).
     [HttpPost("register")]
     public async Task<ActionResult<ApiResponse<UserDto>>> Register([FromBody] RegisterRequest request)
     {
@@ -41,9 +36,7 @@ public class AuthController : ControllerBase
         return StatusCode(StatusCodes.Status201Created, response);
     }
 
-    /// <summary>Initiates the forgot-password flow by sending an email with a secure confirmation button link.</summary>
-    /// <param name="request">The forgot password request containing the account email.</param>
-    /// <returns>An API response confirming recovery email dispatch.</returns>
+    // Initiates the forgot-password flow by sending an email with a secure confirmation button link.
     [HttpPost("forgot-password")]
     public async Task<ActionResult<ApiResponse<string>>> ForgotPassword([FromBody] ForgotPasswordRequest request)
     {
@@ -51,9 +44,7 @@ public class AuthController : ControllerBase
         return Ok(ApiResponse<string>.Ok("Liên kết xác nhận đặt lại mật khẩu đã được gửi về email của bạn. Vui lòng kiểm tra hộp thư."));
     }
 
-    /// <summary>Verifies the token from confirmation email link and updates the user account password.</summary>
-    /// <param name="request">The password reset request containing email, token, and new password.</param>
-    /// <returns>An API response confirming the password has been reset.</returns>
+    // Verifies the token from confirmation email link and updates the user account password.
     [HttpPost("reset-password")]
     public async Task<ActionResult<ApiResponse<string>>> ResetPassword([FromBody] ResetPasswordRequest request)
     {
@@ -61,7 +52,7 @@ public class AuthController : ControllerBase
         return Ok(ApiResponse<string>.Ok("Đặt lại mật khẩu thành công. Vui lòng đăng nhập bằng mật khẩu mới."));
     }
 
-    /// <summary>Authenticates user credentials and issues a fresh access and refresh token pair.</summary>
+    // Authenticates user credentials and issues a fresh access and refresh token pair.
     [HttpPost("login")]
     public async Task<ActionResult<ApiResponse<AuthResponse>>> Login([FromBody] LoginRequest request)
     {
@@ -71,7 +62,7 @@ public class AuthController : ControllerBase
         return Ok(response);
     }
 
-    /// <summary>Rotates the refresh token and returns a newly issued access and refresh token pair.</summary>
+    // Rotates the refresh token and returns a newly issued access and refresh token pair.
     [HttpPost("refresh-token")]
     public async Task<ActionResult<ApiResponse<AuthResponse>>> RefreshToken([FromBody] RefreshTokenRequest? request)
     {
@@ -97,7 +88,7 @@ public class AuthController : ControllerBase
         }
     }
 
-    /// <summary>Retrieves profile details of the currently authenticated user.</summary>
+    // Retrieves profile details of the currently authenticated user.
     [Microsoft.AspNetCore.Authorization.Authorize]
     [HttpGet("me")]
     public async Task<ActionResult<ApiResponse<UserDto>>> GetMe()
@@ -114,7 +105,7 @@ public class AuthController : ControllerBase
         return Ok(ApiResponse<UserDto>.Ok(userDto, "Lấy thông tin tài khoản thành công."));
     }
 
-    /// <summary>Revokes the current refresh token and clears client authentication cookies.</summary>
+    // Revokes the current refresh token and clears client authentication cookies.
     [HttpPost("logout")]
     public async Task<ActionResult<ApiResponse<string>>> Logout([FromBody] RefreshTokenRequest? request)
     {
