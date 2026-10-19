@@ -16,15 +16,12 @@ public static class DependencyInjection
         // 3. OpenAPI Documentation (.NET 10 Native)
         services.AddOpenApi();
 
-        // 3. CORS Policy cho Frontend Next.js
+        // 3. CORS Policy cho Frontend Next.js (hỗ trợ cả Localhost, Vercel và Custom Domain)
         services.AddCors(options =>
         {
             options.AddPolicy("AllowFrontend", policy =>
             {
-                  policy.WithOrigins(
-                    "https://localhost:3000", 
-                    "http://localhost:3000"  
-                )
+                policy.SetIsOriginAllowed(origin => true)
                       .AllowAnyHeader()
                       .AllowAnyMethod()
                       .AllowCredentials();

@@ -110,7 +110,7 @@ public class AdminController : ControllerBase
         try
         {
             var sw = Stopwatch.StartNew();
-            var res = await _httpClient.GetAsync("http://localhost:8000/");
+            var res = await _httpClient.GetAsync("http://localhost:8001/");
             sw.Stop();
             aiStatus = res.IsSuccessStatusCode
                 ? new ServiceStatusDto("AI Vision (FastAPI)", "healthy", (int)sw.ElapsedMilliseconds, "Camera & YOLO v8 sẵn sàng")

@@ -71,3 +71,7 @@ skills-lock.json
 *.md
 !README.md
 !readme.md
+
+# Diagrams
+*.drawio
+*.drawio.png
