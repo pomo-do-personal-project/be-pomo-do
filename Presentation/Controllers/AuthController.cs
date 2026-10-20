@@ -1,4 +1,4 @@
-﻿using be_pomo_do.Core.Exceptions;
+using be_pomo_do.Core.Exceptions;
 using be_pomo_do.Application.DTOs.Auth;
 using be_pomo_do.Application.Services;
 using be_pomo_do.Presentation.DTOs;
@@ -123,7 +123,8 @@ public class AuthController : ControllerBase
         {
             HttpOnly = true,
             Secure = true,
-            SameSite = SameSiteMode.Lax,
+            SameSite = SameSiteMode.None,
+            Path = "/",
             Expires = DateTime.UtcNow.AddMinutes(15)
         };
 
@@ -131,8 +132,8 @@ public class AuthController : ControllerBase
         {
             HttpOnly = true,
             Secure = true,
-            SameSite = SameSiteMode.Lax,
-            Path = "/api/auth",
+            SameSite = SameSiteMode.None,
+            Path = "/",
             Expires = DateTime.UtcNow.AddDays(7)
         };
 
@@ -142,10 +143,15 @@ public class AuthController : ControllerBase
 
     private void ClearTokenCookies()
     {
-        Response.Cookies.Delete("access_token");
-        Response.Cookies.Delete("refresh_token", new CookieOptions
+        var cookieOptions = new CookieOptions
         {
-            Path = "/api/auth"
-        });
+            HttpOnly = true,
+            Secure = true,
+            SameSite = SameSiteMode.None,
+            Path = "/"
+        };
+
+        Response.Cookies.Delete("access_token", cookieOptions);
+        Response.Cookies.Delete("refresh_token", cookieOptions);
     }
 }

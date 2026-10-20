@@ -1,9 +1,18 @@
 using be_pomo_do.Application;
 using be_pomo_do.Infrastructure;
 using be_pomo_do.Presentation;
+using Microsoft.AspNetCore.HttpOverrides;
 using Scalar.AspNetCore;
 
 var builder = WebApplication.CreateBuilder(args);
+
+// Cấu hình ForwardedHeaders để nhận diện đúng giao thức HTTPS từ Reverse Proxy (Render / Nginx / ALB)
+builder.Services.Configure<ForwardedHeadersOptions>(options =>
+{
+    options.ForwardedHeaders = ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto;
+    options.KnownIPNetworks.Clear();
+    options.KnownProxies.Clear();
+});
 
 // 1. Composition Root: Đăng ký dịch vụ theo từng tầng bằng Extension Methods
 builder.Services
@@ -12,6 +21,9 @@ builder.Services
     .AddPresentation(builder.Configuration);
 
 var app = builder.Build();
+
+// Đảm bảo nhận diện đúng HTTPS và client IP từ proxy trước khi xử lý routing/auth/cors
+app.UseForwardedHeaders();
 
 // Tự động cập nhật Migration Database khi khởi động
 using (var scope = app.Services.CreateScope())
