@@ -3,12 +3,14 @@ using be_pomo_do.Application.DTOs.Auth;
 using be_pomo_do.Application.Services;
 using be_pomo_do.Presentation.DTOs;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
 
 namespace be_pomo_do.Presentation.Controllers;
 
 // Handles authentication, registration, token rotation, and session management.
 [ApiController]
 [Route("api/[controller]")]
+[EnableRateLimiting("AuthRateLimit")]
 public class AuthController : ControllerBase
 {
     private readonly IAuthService _authService;

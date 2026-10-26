@@ -66,16 +66,26 @@ public class PomodoroService : IPomodoroService
 
         var now = DateTime.UtcNow;
         var plannedSeconds = session.DurationMinutes * 60;
+        var elapsedRealSeconds = (int)Math.Max(0, (now - session.StartedAt).TotalSeconds);
 
-        // Nếu client truyền actualSeconds > 0 thì dùng client, nếu không truyền hoặc gửi 0 thì tự tính dựa theo thời gian thực tế đã trôi qua
-        var actualSeconds = request.ActualSeconds > 0
-            ? request.ActualSeconds
-            : (int)Math.Max(0, (now - session.StartedAt).TotalSeconds);
+        // Chống gian lận thời gian (Anti-Time-Tampering):
+        // ActualSeconds tối đa không được vượt quá thời gian trôi qua thực tế cộng dung sai mạng (60 giây)
+        int actualSeconds;
+        if (request.ActualSeconds > 0)
+        {
+            var maxAllowedSeconds = elapsedRealSeconds + 60;
+            actualSeconds = Math.Min(request.ActualSeconds, maxAllowedSeconds);
+        }
+        else
+        {
+            actualSeconds = elapsedRealSeconds;
+        }
 
-        // Tính overtime: Nếu client gửi overtimeSeconds > 0 thì dùng, nếu không thì tự tính (actualSeconds - plannedSeconds)
+        // Overtime tính toán nghiêm ngặt dựa trên actualSeconds thực tế đã kiểm chứng
+        var maxOvertime = Math.Max(0, actualSeconds - plannedSeconds);
         var overtimeSeconds = request.OvertimeSeconds > 0
-            ? request.OvertimeSeconds
-            : Math.Max(0, actualSeconds - plannedSeconds);
+            ? Math.Min(request.OvertimeSeconds, maxOvertime)
+            : maxOvertime;
 
         session.ActualSeconds = actualSeconds;
         session.OvertimeSeconds = overtimeSeconds;
