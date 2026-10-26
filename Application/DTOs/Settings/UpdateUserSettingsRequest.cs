@@ -42,5 +42,14 @@ public class UpdateUserSettingsRequest
     // Khung giờ gửi báo cáo tuần vào sáng Thứ Hai (định dạng HH:mm, ví dụ 08:00)
     [RegularExpression(@"^([01]\d|2[0-3]):[0-5]\d$", ErrorMessage = "Khung giờ gửi báo cáo tuần không hợp lệ (định dạng HH:mm).")]
     public string? WeeklyReportTime { get; set; }
+
+    // Ảnh nền bàn làm việc được chọn
+    public string? WallpaperUrl { get; set; }
+
+    // Chuông báo kết thúc phiên được chọn
+    public string? AlarmSoundUrl { get; set; }
+
+    // Âm thanh môi trường tập trung được chọn
+    public string? AmbientSoundUrl { get; set; }
 }
 

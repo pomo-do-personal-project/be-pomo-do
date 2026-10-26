@@ -78,6 +78,10 @@ public class SettingsService : ISettingsService
             {
                 settings.ThemeMode = request.ThemeMode.Trim().ToLower();
             }
+
+            settings.WallpaperUrl = request.WallpaperUrl;
+            settings.AlarmSoundUrl = request.AlarmSoundUrl;
+            settings.AmbientSoundUrl = request.AmbientSoundUrl;
         }
 
         await _settingsRepository.SaveChangesAsync();
@@ -99,7 +103,10 @@ public class SettingsService : ISettingsService
             EmailDailyDigest = entity.EmailDailyDigest,
             ReportEmail = entity.ReportEmail,
             DailyDigestTime = entity.DailyDigestTime,
-            WeeklyReportTime = entity.WeeklyReportTime
+            WeeklyReportTime = entity.WeeklyReportTime,
+            WallpaperUrl = entity.WallpaperUrl,
+            AlarmSoundUrl = entity.AlarmSoundUrl,
+            AmbientSoundUrl = entity.AmbientSoundUrl
         };
     }
 }

@@ -15,5 +15,8 @@ public class UserSettingsDto
     public string? ReportEmail { get; set; }
     public string DailyDigestTime { get; set; } = "07:00";
     public string WeeklyReportTime { get; set; } = "08:00";
+    public string? WallpaperUrl { get; set; }
+    public string? AlarmSoundUrl { get; set; }
+    public string? AmbientSoundUrl { get; set; }
 }
 

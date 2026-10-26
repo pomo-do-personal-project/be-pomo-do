@@ -28,4 +28,10 @@ public interface IAuthService
 
     // Đăng xuất và thu hồi refresh token
     Task LogoutAsync(string? refreshTokenString);
+
+    // Đăng nhập hoặc đăng ký tự động bằng Google ID Token
+    Task<AuthResponse> GoogleAuthAsync(GoogleAuthRequest request);
+
+    // Đăng nhập hoặc đăng ký tự động bằng Supabase Access Token
+    Task<AuthResponse> SupabaseAuthAsync(SupabaseAuthRequest request);
 }

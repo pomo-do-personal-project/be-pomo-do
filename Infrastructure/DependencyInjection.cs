@@ -13,6 +13,7 @@ public static class DependencyInjection
         var defaultConn = NormalizePostgresConnectionString(configuration.GetConnectionString("DefaultConnection"));
         services.AddDbContext<AppDbContext>(options =>
             options.UseNpgsql(defaultConn)
+                   .ConfigureWarnings(w => w.Ignore(Microsoft.EntityFrameworkCore.Diagnostics.RelationalEventId.PendingModelChangesWarning))
         );
 
         // 2. Cấu hình JWT Options

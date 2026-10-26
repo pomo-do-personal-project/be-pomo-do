@@ -62,6 +62,26 @@ public class AuthController : ControllerBase
         return Ok(response);
     }
 
+    // Đăng nhập hoặc đăng ký tự động bằng Google ID Token
+    [HttpPost("google")]
+    public async Task<ActionResult<ApiResponse<AuthResponse>>> GoogleAuth([FromBody] GoogleAuthRequest request)
+    {
+        var result = await _authService.GoogleAuthAsync(request);
+        SetTokenCookies(result.AccessToken, result.RefreshToken);
+        var response = ApiResponse<AuthResponse>.Ok(result, "Đăng nhập Google thành công.");
+        return Ok(response);
+    }
+
+    // Đăng nhập hoặc đăng ký tự động bằng Supabase Access Token
+    [HttpPost("supabase")]
+    public async Task<ActionResult<ApiResponse<AuthResponse>>> SupabaseAuth([FromBody] SupabaseAuthRequest request)
+    {
+        var result = await _authService.SupabaseAuthAsync(request);
+        SetTokenCookies(result.AccessToken, result.RefreshToken);
+        var response = ApiResponse<AuthResponse>.Ok(result, "Đăng nhập Supabase Google thành công.");
+        return Ok(response);
+    }
+
     // Rotates the refresh token and returns a newly issued access and refresh token pair.
     [HttpPost("refresh-token")]
     public async Task<ActionResult<ApiResponse<AuthResponse>>> RefreshToken([FromBody] RefreshTokenRequest? request)

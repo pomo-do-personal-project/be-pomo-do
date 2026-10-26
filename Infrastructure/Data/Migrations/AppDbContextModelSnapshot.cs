@@ -326,6 +326,242 @@ namespace be_pomo_do.Infrastructure.Data.Migrations
                     b.ToTable("subtasks", (string)null);
                 });
 
+            modelBuilder.Entity("be_pomo_do.Core.Entities.SystemAsset", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<string>("AssetType")
+                        .IsRequired()
+                        .HasMaxLength(30)
+                        .HasColumnType("character varying(30)")
+                        .HasColumnName("asset_type");
+
+                    b.Property<string>("Category")
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)")
+                        .HasColumnName("category");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at")
+                        .HasDefaultValueSql("NOW()");
+
+                    b.Property<bool>("IsActive")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(true)
+                        .HasColumnName("is_active");
+
+                    b.Property<bool>("IsDefault")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(false)
+                        .HasColumnName("is_default");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)")
+                        .HasColumnName("name");
+
+                    b.Property<string>("ThumbnailUrl")
+                        .HasColumnType("text")
+                        .HasColumnName("thumbnail_url");
+
+                    b.Property<string>("Url")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("url");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("Category");
+
+                    b.HasIndex("AssetType", "IsActive");
+
+                    b.ToTable("system_assets", (string)null);
+
+                    b.HasData(
+                        new
+                        {
+                            Id = new Guid("11111111-1111-1111-1111-111111111101"),
+                            AssetType = "audio_alarm",
+                            Category = "#Zen",
+                            CreatedAt = new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
+                            IsActive = true,
+                            IsDefault = true,
+                            Name = "Chuông chùa Zen thanh tịnh",
+                            Url = "/sounds/zen_bell.wav"
+                        },
+                        new
+                        {
+                            Id = new Guid("11111111-1111-1111-1111-111111111102"),
+                            AssetType = "audio_alarm",
+                            Category = "#Digital",
+                            CreatedAt = new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
+                            IsActive = true,
+                            IsDefault = false,
+                            Name = "Chuông điện tử dịu êm",
+                            Url = "/sounds/digital_chime.wav"
+                        },
+                        new
+                        {
+                            Id = new Guid("11111111-1111-1111-1111-111111111103"),
+                            AssetType = "audio_alarm",
+                            Category = "#Nature",
+                            CreatedAt = new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
+                            IsActive = true,
+                            IsDefault = false,
+                            Name = "Tiếng chim rừng sớm",
+                            Url = "/sounds/morning_birds.wav"
+                        },
+                        new
+                        {
+                            Id = new Guid("22222222-2222-2222-2222-222222222201"),
+                            AssetType = "audio_ambient",
+                            Category = "#Nature",
+                            CreatedAt = new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
+                            IsActive = true,
+                            IsDefault = true,
+                            Name = "Mưa rơi êm dịu (Rain)",
+                            Url = "/sounds/rain_ambient.wav"
+                        },
+                        new
+                        {
+                            Id = new Guid("22222222-2222-2222-2222-222222222202"),
+                            AssetType = "audio_ambient",
+                            Category = "#Cozy",
+                            CreatedAt = new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
+                            IsActive = true,
+                            IsDefault = false,
+                            Name = "Quán Cafe sách (Coffee Shop)",
+                            Url = "/sounds/coffee_shop.wav"
+                        },
+                        new
+                        {
+                            Id = new Guid("22222222-2222-2222-2222-222222222203"),
+                            AssetType = "audio_ambient",
+                            Category = "#Nature",
+                            CreatedAt = new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
+                            IsActive = true,
+                            IsDefault = false,
+                            Name = "Sóng biển đêm (Ocean Waves)",
+                            Url = "/sounds/ocean_waves.wav"
+                        },
+                        new
+                        {
+                            Id = new Guid("33333333-3333-3333-3333-333333333301"),
+                            AssetType = "wallpaper",
+                            Category = "#Lofi",
+                            CreatedAt = new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
+                            IsActive = true,
+                            IsDefault = true,
+                            Name = "Phòng Cozy Lofi Anime",
+                            ThumbnailUrl = "https://images.unsplash.com/photo-1518495973542-4542c06a5843?q=80&w=400&auto=format&fit=crop",
+                            Url = "https://images.unsplash.com/photo-1518495973542-4542c06a5843?q=80&w=1920&auto=format&fit=crop"
+                        },
+                        new
+                        {
+                            Id = new Guid("33333333-3333-3333-3333-333333333302"),
+                            AssetType = "wallpaper",
+                            Category = "#Cyberpunk",
+                            CreatedAt = new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
+                            IsActive = true,
+                            IsDefault = false,
+                            Name = "Cyberpunk Neon Rain",
+                            ThumbnailUrl = "https://images.unsplash.com/photo-1509198397868-475647b2a1e5?q=80&w=400&auto=format&fit=crop",
+                            Url = "https://images.unsplash.com/photo-1509198397868-475647b2a1e5?q=80&w=1920&auto=format&fit=crop"
+                        },
+                        new
+                        {
+                            Id = new Guid("33333333-3333-3333-3333-333333333303"),
+                            AssetType = "wallpaper",
+                            Category = "#Minimal",
+                            CreatedAt = new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
+                            IsActive = true,
+                            IsDefault = false,
+                            Name = "Bàn làm việc Tối giản",
+                            ThumbnailUrl = "https://images.unsplash.com/photo-1497366216548-37526070297c?q=80&w=400&auto=format&fit=crop",
+                            Url = "https://images.unsplash.com/photo-1497366216548-37526070297c?q=80&w=1920&auto=format&fit=crop"
+                        },
+                        new
+                        {
+                            Id = new Guid("33333333-3333-3333-3333-333333333304"),
+                            AssetType = "wallpaper",
+                            Category = "#Nature",
+                            CreatedAt = new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
+                            IsActive = true,
+                            IsDefault = false,
+                            Name = "Rừng sương mù tĩnh lặng",
+                            ThumbnailUrl = "https://images.unsplash.com/photo-1448375240586-882707db888b?q=80&w=400&auto=format&fit=crop",
+                            Url = "https://images.unsplash.com/photo-1448375240586-882707db888b?q=80&w=1920&auto=format&fit=crop"
+                        },
+                        new
+                        {
+                            Id = new Guid("44444444-4444-4444-4444-444444444401"),
+                            AssetType = "wallpaper",
+                            Category = "#CitySeries",
+                            CreatedAt = new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
+                            IsActive = true,
+                            IsDefault = false,
+                            Name = "Tokyo - Chùa Phú Sĩ & Hoa anh đào",
+                            ThumbnailUrl = "/wallpapers/city/tokyo.jpg",
+                            Url = "/wallpapers/city/tokyo.jpg"
+                        },
+                        new
+                        {
+                            Id = new Guid("44444444-4444-4444-4444-444444444402"),
+                            AssetType = "wallpaper",
+                            Category = "#CitySeries",
+                            CreatedAt = new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
+                            IsActive = true,
+                            IsDefault = false,
+                            Name = "Hà Nội - Tháp Rùa sương sớm",
+                            ThumbnailUrl = "/wallpapers/city/hanoi.jpg",
+                            Url = "/wallpapers/city/hanoi.jpg"
+                        },
+                        new
+                        {
+                            Id = new Guid("44444444-4444-4444-4444-444444444403"),
+                            AssetType = "wallpaper",
+                            Category = "#CitySeries",
+                            CreatedAt = new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
+                            IsActive = true,
+                            IsDefault = false,
+                            Name = "Paris - Tháp Eiffel hoàng hôn tím",
+                            ThumbnailUrl = "/wallpapers/city/paris.jpg",
+                            Url = "/wallpapers/city/paris.jpg"
+                        },
+                        new
+                        {
+                            Id = new Guid("44444444-4444-4444-4444-444444444404"),
+                            AssetType = "wallpaper",
+                            Category = "#CitySeries",
+                            CreatedAt = new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
+                            IsActive = true,
+                            IsDefault = false,
+                            Name = "Cairo - Kim tự tháp & Đêm sa mạc",
+                            ThumbnailUrl = "/wallpapers/city/cairo.jpg",
+                            Url = "/wallpapers/city/cairo.jpg"
+                        },
+                        new
+                        {
+                            Id = new Guid("44444444-4444-4444-4444-444444444405"),
+                            AssetType = "wallpaper",
+                            Category = "#CitySeries",
+                            CreatedAt = new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
+                            IsActive = true,
+                            IsDefault = false,
+                            Name = "Sydney - Nhà hát Con sò & Vịnh đêm",
+                            ThumbnailUrl = "/wallpapers/city/sydney.jpg",
+                            Url = "/wallpapers/city/sydney.jpg"
+                        });
+                });
+
             modelBuilder.Entity("be_pomo_do.Core.Entities.Tag", b =>
                 {
                     b.Property<Guid>("Id")
@@ -529,6 +765,14 @@ namespace be_pomo_do.Infrastructure.Data.Migrations
                         .HasColumnType("uuid")
                         .HasColumnName("id");
 
+                    b.Property<string>("AlarmSoundUrl")
+                        .HasColumnType("text")
+                        .HasColumnName("alarm_sound_url");
+
+                    b.Property<string>("AmbientSoundUrl")
+                        .HasColumnType("text")
+                        .HasColumnName("ambient_sound_url");
+
                     b.Property<bool>("AutoStartBreaks")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("boolean")
@@ -597,6 +841,10 @@ namespace be_pomo_do.Infrastructure.Data.Migrations
                     b.Property<Guid>("UserId")
                         .HasColumnType("uuid")
                         .HasColumnName("user_id");
+
+                    b.Property<string>("WallpaperUrl")
+                        .HasColumnType("text")
+                        .HasColumnName("wallpaper_url");
 
                     b.Property<string>("WeeklyReportTime")
                         .IsRequired()

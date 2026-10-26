@@ -18,6 +18,7 @@ public class AppDbContext : DbContext
     public DbSet<RefreshToken> RefreshTokens => Set<RefreshToken>();
     public DbSet<AdminActionHistory> AdminActionHistories => Set<AdminActionHistory>();
     public DbSet<ScheduledNotification> ScheduledNotifications => Set<ScheduledNotification>();
+    public DbSet<SystemAsset> SystemAssets => Set<SystemAsset>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -73,6 +74,9 @@ public class AppDbContext : DbContext
             entity.Property(e => e.WeeklyReportTime).HasColumnName("weekly_report_time").HasMaxLength(10).HasDefaultValue("08:00");
             entity.Property(e => e.LastDailyDigestSentDate).HasColumnName("last_daily_digest_sent_date");
             entity.Property(e => e.LastWeeklyReportSentDate).HasColumnName("last_weekly_report_sent_date");
+            entity.Property(e => e.WallpaperUrl).HasColumnName("wallpaper_url");
+            entity.Property(e => e.AlarmSoundUrl).HasColumnName("alarm_sound_url");
+            entity.Property(e => e.AmbientSoundUrl).HasColumnName("ambient_sound_url");
         });
 
         // 3. DailyStreaks
@@ -220,5 +224,8 @@ public class AppDbContext : DbContext
             entity.HasIndex(e => new { e.IsSent, e.ScheduledAt });
             entity.HasIndex(e => e.AdminId);
         });
+
+        // 12. SystemAssets
+        modelBuilder.ApplyConfiguration(new Configurations.SystemAssetConfiguration());
     }
 }

@@ -6,11 +6,12 @@ using be_pomo_do.Core.Exceptions;
 using be_pomo_do.Core.ValueObjects;
 using be_pomo_do.Infrastructure.Authentication;
 using Microsoft.Extensions.Options;
+using Google.Apis.Auth;
 
 namespace be_pomo_do.Application.Services;
 
-// Provides application business workflows for user authentication, registration, token rotation, and session management.
-public class AuthService : IAuthService
+// Cung cấp luồng nghiệp vụ xác thực người dùng, đăng ký, xoay vòng token và quản lý phiên
+public partial class AuthService : IAuthService
 {
     private readonly IUserRepository _userRepository;
     private readonly IPasswordHasher _passwordHasher;
@@ -220,6 +221,7 @@ public class AuthService : IAuthService
 
         await _userRepository.SaveChangesAsync();
     }
+
 
     // Helper tạo entity RefreshToken
     private RefreshToken BuildRefreshToken(Guid userId, string token) => new()

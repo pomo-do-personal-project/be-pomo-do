@@ -17,6 +17,11 @@ public class UserSettings
     public DateOnly? LastDailyDigestSentDate { get; set; }
     public DateOnly? LastWeeklyReportSentDate { get; set; }
 
+    // Tùy chọn cá nhân hóa không gian làm việc từ kho tài nguyên
+    public string? WallpaperUrl { get; set; }
+    public string? AlarmSoundUrl { get; set; }
+    public string? AmbientSoundUrl { get; set; }
+
     // Navigation property
     public User? User { get; set; }
 }
