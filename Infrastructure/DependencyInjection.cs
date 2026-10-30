@@ -68,6 +68,7 @@ public static class DependencyInjection
         services.AddHostedService<BackgroundServices.EmailReportSchedulerWorker>();
         services.AddSingleton<Application.Common.ScheduledNotificationSignal>();
         services.AddHostedService<BackgroundServices.AdminScheduledNotificationWorker>();
+        services.AddHostedService<BackgroundServices.AdminAccountSeedWorker>();
         services.AddScoped<Application.Services.IAdminService, Services.AdminService>();
 
         // 8. Scrutor: Tự động quét và đăng ký tất cả các class có đuôi Repository (map với I...Repository tương ứng)
