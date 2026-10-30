@@ -35,6 +35,19 @@ using (var scope = app.Services.CreateScope())
 // 2. HTTP Request Pipeline
 app.UseExceptionHandler();
 
+// Health check endpoint cho AWS ALB Target Group & Docker (trả về 200 OK ngay lập tức, bỏ qua HTTPS Redirection / Auth)
+app.Use(async (context, next) =>
+{
+    if (context.Request.Path == "/health")
+    {
+        context.Response.StatusCode = 200;
+        context.Response.ContentType = "application/json";
+        await context.Response.WriteAsync("{\"status\":\"healthy\",\"service\":\"be-pomo-do\"}");
+        return;
+    }
+    await next();
+});
+
 if (app.Environment.IsDevelopment())
 {
     app.MapOpenApi();
@@ -58,5 +71,6 @@ app.UseAuthorization();
 
 // 3. Map toàn bộ Controllers trong hệ thống
 app.MapControllers();
+app.MapGet("/health", () => Results.Ok(new { status = "healthy", service = "be-pomo-do" })).AllowAnonymous();
 
 app.Run();
