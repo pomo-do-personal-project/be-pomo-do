@@ -10,10 +10,14 @@ namespace be_pomo_do.Presentation.Controllers;
 public class SystemAssetsController : ControllerBase
 {
     private readonly ISystemAssetService _assetService;
+    private readonly IS3StorageService _s3StorageService;
 
-    public SystemAssetsController(ISystemAssetService assetService)
+    public SystemAssetsController(
+        ISystemAssetService assetService,
+        IS3StorageService s3StorageService)
     {
         _assetService = assetService ?? throw new ArgumentNullException(nameof(assetService));
+        _s3StorageService = s3StorageService ?? throw new ArgumentNullException(nameof(s3StorageService));
     }
 
     // Lấy danh sách tài nguyên kích hoạt cho người dùng (có thể lọc theo loại và thể loại)
@@ -61,6 +65,56 @@ public class SystemAssetsController : ControllerBase
         return Ok(ApiResponse<SystemAssetDto>.Ok(result, "Lấy thông tin tài nguyên thành công."));
     }
 
+    // Admin: Tải ảnh tài nguyên lên AWS S3 (hỗ trợ multipart file hoặc remoteUrl)
+    [HttpPost("api/admin/assets/upload")]
+    [Authorize(Roles = "Admin")]
+    [Consumes("multipart/form-data")]
+    public async Task<ActionResult<ApiResponse<object>>> UploadAsset(
+        [FromForm] IFormFile? file,
+        [FromForm] string? fileName,
+        [FromForm] string? remoteUrl,
+        CancellationToken cancellationToken)
+    {
+        string publicUrl;
+        var name = !string.IsNullOrWhiteSpace(fileName) ? fileName : file?.FileName ?? "asset";
+
+        if (file != null && file.Length > 0)
+        {
+            using var stream = file.OpenReadStream();
+            publicUrl = await _s3StorageService.UploadFileAsync(stream, name, file.ContentType, cancellationToken);
+        }
+        else if (!string.IsNullOrWhiteSpace(remoteUrl))
+        {
+            publicUrl = await _s3StorageService.UploadFromUrlAsync(remoteUrl, name, cancellationToken);
+        }
+        else
+        {
+            return BadRequest(ApiResponse<object>.Fail("Vui lòng cung cấp tệp tải lên hoặc đường dẫn ảnh từ xa."));
+        }
+
+        return Ok(ApiResponse<object>.Ok(new { publicUrl }, "Tải ảnh lên AWS S3 thành công."));
+    }
+
+    // Admin: Tải ảnh từ URL từ xa qua JSON Body
+    [HttpPost("api/admin/assets/upload-url")]
+    [Authorize(Roles = "Admin")]
+    public async Task<ActionResult<ApiResponse<object>>> UploadAssetFromUrl(
+        [FromBody] UploadAssetUrlRequest request,
+        CancellationToken cancellationToken)
+    {
+        if (string.IsNullOrWhiteSpace(request?.RemoteUrl))
+        {
+            return BadRequest(ApiResponse<object>.Fail("Đường dẫn URL ảnh không được để trống."));
+        }
+
+        var publicUrl = await _s3StorageService.UploadFromUrlAsync(
+            request.RemoteUrl,
+            request.FileName ?? "asset",
+            cancellationToken);
+
+        return Ok(ApiResponse<object>.Ok(new { publicUrl }, "Tải ảnh từ URL lên AWS S3 thành công."));
+    }
+
     // Admin: Thêm mới tài nguyên vào kho
     [HttpPost("api/admin/assets")]
     [Authorize(Roles = "Admin")]
@@ -106,3 +160,5 @@ public class SystemAssetsController : ControllerBase
         return Ok(ApiResponse<SystemAssetDto>.Ok(result, "Đặt tài nguyên làm mặc định thành công."));
     }
 }
+
+public record UploadAssetUrlRequest(string RemoteUrl, string? FileName);

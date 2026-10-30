@@ -71,6 +71,10 @@ public static class DependencyInjection
         services.AddHostedService<BackgroundServices.AdminAccountSeedWorker>();
         services.AddScoped<Application.Services.IAdminService, Services.AdminService>();
 
+        // AWS S3 Storage Service & HttpClient
+        services.AddHttpClient();
+        services.AddScoped<Application.Common.Interfaces.IS3StorageService, Services.S3StorageService>();
+
         // 8. Scrutor: Tự động quét và đăng ký tất cả các class có đuôi Repository (map với I...Repository tương ứng)
         services.Scan(scan => scan
             .FromAssemblyOf<Program>()

@@ -104,3 +104,4 @@ public class AdminAccountSeedWorker : IHostedService
 
     public Task StopAsync(CancellationToken cancellationToken) => Task.CompletedTask;
 }
+
