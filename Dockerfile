@@ -19,4 +19,7 @@ COPY --from=build /app/publish .
 ENV ASPNETCORE_URLS=http://+:8080
 EXPOSE 8080
 
+# Chạy với tài khoản không đặc quyền (non-root) để tăng cường bảo mật container
+USER $APP_UID
+
 ENTRYPOINT ["dotnet", "be-pomo-do.dll"]

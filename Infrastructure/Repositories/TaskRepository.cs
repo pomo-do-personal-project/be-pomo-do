@@ -70,7 +70,7 @@ public class TaskRepository : ITaskRepository
             .Include(t => t.TaskTags)
                 .ThenInclude(tt => tt.Tag)
             .Include(t => t.FocusSessions)
-            .ToListAsync(Ct);
+            .AsSplitQuery().ToListAsync(Ct);
     }
 
     public async Task<TaskItem?> GetTaskByIdAsync(Guid taskId, Guid userId, bool includeDeleted = false)
@@ -122,7 +122,7 @@ public class TaskRepository : ITaskRepository
 
         return await _context.Tags
             .Where(t => t.UserId == userId && tagIds.Contains(t.Id))
-            .ToListAsync(Ct);
+            .AsSplitQuery().ToListAsync(Ct);
     }
 
     public async Task SaveChangesAsync()

@@ -151,6 +151,11 @@ public class SystemAssetService : ISystemAssetService
             throw new DomainException("Tài nguyên không tồn tại.");
         }
 
+        if (entity.IsDefault && entity.IsActive)
+        {
+            throw new DomainException("Không thể tắt kích hoạt tài nguyên đang được đặt làm mặc định.");
+        }
+
         entity.IsActive = !entity.IsActive;
         await _assetRepository.SaveChangesAsync(cancellationToken);
         return MapToDto(entity);

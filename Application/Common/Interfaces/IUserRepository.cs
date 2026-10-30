@@ -20,6 +20,9 @@ public interface IUserRepository
     // Adds a new refresh token entity associated with a user to the persistence store.
     Task AddRefreshTokenAsync(RefreshToken refreshToken);
 
+    // Removes a stale or revoked refresh token entity.
+    void RemoveRefreshToken(RefreshToken refreshToken);
+
     // Retrieves a refresh token record along with its associated user entity.
     Task<RefreshToken?> GetRefreshTokenWithUserAsync(string token);
 

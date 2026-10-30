@@ -74,7 +74,11 @@ public static class DependencyInjection
         });
 
         // 4. JWT Authentication
-        var jwtSecret = configuration["JwtSettings:Secret"] ?? "pomo_do_super_secret_jwt_key_min_32_characters_long_2026!";
+        var jwtSecret = configuration["JwtSettings:Secret"];
+        if (string.IsNullOrWhiteSpace(jwtSecret) || System.Text.Encoding.UTF8.GetByteCount(jwtSecret) < 32)
+        {
+            throw new InvalidOperationException("JwtSettings:Secret chưa được cấu hình hoặc ngắn hơn 32 bytes (256-bit).");
+        }
         var jwtIssuer = configuration["JwtSettings:Issuer"] ?? "pomo-do-backend";
         var jwtAudience = configuration["JwtSettings:Audience"] ?? "pomo-do-client";
 
@@ -100,6 +104,7 @@ public static class DependencyInjection
             };
 
             // Hỗ trợ tự động trích xuất token từ HttpOnly Cookie (BFF architecture) hoặc từ Authorization Bearer Header
+            // và thực thi kiểm tra trạng thái khóa tài khoản (IsSuspended) ngay lập tức trên từng request.
             options.Events = new Microsoft.AspNetCore.Authentication.JwtBearer.JwtBearerEvents
             {
                 OnMessageReceived = context =>
@@ -109,6 +114,31 @@ public static class DependencyInjection
                         context.Token = cookieToken;
                     }
                     return Task.CompletedTask;
+                },
+                OnTokenValidated = async context =>
+                {
+                    var userIdClaim = context.Principal?.FindFirst(System.IdentityModel.Tokens.Jwt.JwtRegisteredClaimNames.Sub)?.Value
+                        ?? context.Principal?.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+
+                    if (Guid.TryParse(userIdClaim, out var userId))
+                    {
+                        var dbContext = context.HttpContext.RequestServices.GetRequiredService<be_pomo_do.Infrastructure.Data.AppDbContext>();
+                        var user = await Microsoft.EntityFrameworkCore.EntityFrameworkQueryableExtensions.FirstOrDefaultAsync(
+                            dbContext.Users, u => u.Id == userId, context.HttpContext.RequestAborted);
+
+                        if (user == null || user.IsSuspended)
+                        {
+                            context.Fail("Tài khoản đã bị tạm khóa hoặc không còn tồn tại trên hệ thống.");
+                            return;
+                        }
+
+                        // Nếu token có claim Admin nhưng trong DB đã bị gỡ quyền Admin
+                        var hasAdminClaim = context.Principal?.HasClaim(c => (c.Type == System.Security.Claims.ClaimTypes.Role || c.Type == "role") && c.Value == "Admin") ?? false;
+                        if (hasAdminClaim && !user.IsAdmin)
+                        {
+                            context.Fail("Quyền quản trị viên của tài khoản này đã bị thu hồi.");
+                        }
+                    }
                 }
             };
         });

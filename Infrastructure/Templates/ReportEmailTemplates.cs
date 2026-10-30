@@ -135,9 +135,9 @@ public static class ReportEmailTemplates
 
                   <tr>
                     <td style="padding-top: 20px; border-top: 1px solid #f1f5f9; text-align: center;">
-                      <p style="margin: 0; font-size: 12px; color: #94a3b8;">
+                      <p style="margin: 0; font-size: 12px; color: #94a3b8; line-height: 18px;">
                         Email này được gửi tự động từ <strong>Pomo-Do</strong> vì bạn đã bật nhận Báo cáo tuần.<br>
-                        Bạn có thể điều chỉnh cấu hình này bất cứ lúc nào trong mục Cài đặt.
+                        Bạn có thể điều chỉnh hoặc <a href="{{appUrl}}/settings" target="_blank" style="color: #64748b; text-decoration: underline;">hủy đăng ký nhận báo cáo tại đây</a> bất cứ lúc nào.
                       </p>
                     </td>
                   </tr>

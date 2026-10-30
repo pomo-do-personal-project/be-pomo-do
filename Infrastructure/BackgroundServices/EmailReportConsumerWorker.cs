@@ -9,10 +9,11 @@ namespace be_pomo_do.Infrastructure.BackgroundServices;
 // Background worker tiêu thụ sự kiện từ Redis Streams và điều phối gửi email (XREADGROUP & XACK)
 public class EmailReportConsumerWorker : BackgroundService
 {
+    private const string DeadLetterStreamKey = "pomodo:stream:email-reports:dead-letter";
     private readonly IConnectionMultiplexer? _redis;
     private readonly IServiceScopeFactory _scopeFactory;
     private readonly ILogger<EmailReportConsumerWorker> _logger;
-    private readonly string _consumerName = $"worker-{Environment.MachineName}-{Guid.NewGuid().ToString("N")[..6]}";
+    private readonly string _consumerName = $"worker-{Environment.MachineName}";
 
     // Khởi tạo EmailReportConsumerWorker với traditional constructor
     public EmailReportConsumerWorker(
@@ -62,6 +63,64 @@ public class EmailReportConsumerWorker : BackgroundService
         {
             try
             {
+                // 1. Quét và phục hồi các tin nhắn bị kẹt trong PEL (Pending Entries List) quá 60 giây
+                try
+                {
+                    var pendingMessages = await db.StreamPendingMessagesAsync(
+                        RedisEmailReportQueue.StreamKey,
+                        RedisEmailReportQueue.ConsumerGroup,
+                        count: 10,
+                        consumerName: RedisValue.Null,
+                        minId: "-",
+                        maxId: "+");
+
+                    foreach (var pending in pendingMessages)
+                    {
+                        if (pending.IdleTimeInMilliseconds > 60_000)
+                        {
+                            if (pending.DeliveryCount > 3)
+                            {
+                                _logger.LogWarning("Stream entry {Id} vượt quá 3 lần thử gửi. Chuyển sang dead-letter queue.", pending.MessageId);
+                                var claimedForDead = await db.StreamClaimAsync(
+                                    RedisEmailReportQueue.StreamKey,
+                                    RedisEmailReportQueue.ConsumerGroup,
+                                    _consumerName,
+                                    minIdleTimeInMs: 60_000,
+                                    messageIds: new[] { pending.MessageId });
+
+                                if (claimedForDead.Length > 0)
+                                {
+                                    var deadValues = claimedForDead[0].Values.ToList();
+                                    deadValues.Add(new NameValueEntry("DeadLetterReason", "MaxRetriesExceeded"));
+                                    deadValues.Add(new NameValueEntry("DeadLetterAt", DateTime.UtcNow.ToString("O")));
+                                    await db.StreamAddAsync(DeadLetterStreamKey, deadValues.ToArray());
+                                }
+
+                                await db.StreamAcknowledgeAsync(RedisEmailReportQueue.StreamKey, RedisEmailReportQueue.ConsumerGroup, pending.MessageId);
+                                continue;
+                            }
+
+                            // Reclaim tin nhắn quá hạn về worker hiện tại để thử lại
+                            var claimed = await db.StreamClaimAsync(
+                                RedisEmailReportQueue.StreamKey,
+                                RedisEmailReportQueue.ConsumerGroup,
+                                _consumerName,
+                                minIdleTimeInMs: 60_000,
+                                messageIds: new[] { pending.MessageId });
+
+                            foreach (var entry in claimed)
+                            {
+                                await ProcessStreamEntryAsync(db, entry, stoppingToken);
+                            }
+                        }
+                    }
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogWarning(ex, "Lỗi kiểm tra Pending Entries List (PEL) trên Redis Streams.");
+                }
+
+                // 2. Tiêu thụ tin nhắn mới trong Stream (">")
                 var entries = await db.StreamReadGroupAsync(
                     RedisEmailReportQueue.StreamKey,
                     RedisEmailReportQueue.ConsumerGroup,

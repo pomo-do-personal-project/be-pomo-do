@@ -24,7 +24,13 @@ public partial class AuthService : IAuthService
         GoogleJsonWebSignature.Payload payload;
         try
         {
-            payload = await GoogleJsonWebSignature.ValidateAsync(request.IdToken);
+            var googleClientId = _configuration["GoogleAuth:ClientId"];
+            var validationSettings = new GoogleJsonWebSignature.ValidationSettings();
+            if (!string.IsNullOrWhiteSpace(googleClientId))
+            {
+                validationSettings.Audience = new[] { googleClientId };
+            }
+            payload = await GoogleJsonWebSignature.ValidateAsync(request.IdToken, validationSettings);
         }
         catch (Exception)
         {
@@ -36,32 +42,23 @@ public partial class AuthService : IAuthService
             throw new DomainException("Không thể lấy email từ tài khoản Google.");
         }
 
+        if (!payload.EmailVerified)
+        {
+            throw new DomainException("Email Google chưa được xác thực.");
+        }
+
         var normalizedEmail = payload.Email.Trim().ToLowerInvariant();
         var user = await _userRepository.GetByEmailAsync(normalizedEmail);
 
         if (user is null)
         {
-            user = new User
-            {
-                Email = normalizedEmail,
-                DisplayName = string.IsNullOrWhiteSpace(payload.Name) ? normalizedEmail.Split('@')[0] : payload.Name.Trim(),
-                AvatarUrl = payload.Picture,
-                Provider = UserProvider.Google,
-                ProviderId = payload.Subject,
-                PasswordHash = null,
-                CreatedAt = DateTime.UtcNow,
-                Settings = new UserSettings
-                {
-                    FocusDuration = 25,
-                    ShortBreakDuration = 5,
-                    LongBreakDuration = 15,
-                    AutoStartBreaks = false,
-                    ThemeMode = "light"
-                },
-                Streak = new DailyStreak { CurrentStreak = 0, LongestStreak = 0 }
-            };
-            user.Settings.UserId = user.Id;
-            user.Streak.UserId = user.Id;
+            var displayName = string.IsNullOrWhiteSpace(payload.Name) ? normalizedEmail.Split('@')[0] : payload.Name.Trim();
+            user = CreateNewUser(
+                email: normalizedEmail,
+                displayName: displayName,
+                provider: UserProvider.Google,
+                providerId: payload.Subject,
+                avatarUrl: payload.Picture);
 
             await _userRepository.AddAsync(user);
         }
@@ -83,14 +80,7 @@ public partial class AuthService : IAuthService
             throw new DomainException($"Tài khoản của bạn đã bị tạm khóa. Lý do: {reason}");
         }
 
-        var accessToken = _jwtTokenGenerator.GenerateAccessToken(user);
-        var refreshTokenString = _jwtTokenGenerator.GenerateRefreshToken();
-
-        var refreshToken = BuildRefreshToken(user.Id, refreshTokenString);
-        await _userRepository.AddRefreshTokenAsync(refreshToken);
-        await _userRepository.SaveChangesAsync();
-
-        return new AuthResponse(user.ToDto(), accessToken, refreshTokenString, _jwtOptions.AccessTokenExpirationMinutes * 60);
+        return await IssueAuthResponseAsync(user);
     }
 
     // Đăng nhập hoặc đăng ký tự động bằng Supabase Access Token
@@ -102,9 +92,10 @@ public partial class AuthService : IAuthService
             throw new DomainException("Supabase Access Token không được để trống.");
         }
 
-        var supabaseUrl = "https://zbygkwrbjeyufepqvpsz.supabase.co/auth/v1/user";
-        var supabaseAnonKey = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InpieWdrd3JiamV5dWZlcHF2cHN6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTA4Mzg2ODksImV4cCI6MjEwNjQxNDY4OX0.Qs2ZqqE-RF8MsEh-sTD6GiR5pQPruIMqiJe_60nQz7s";
-        using var httpRequest = new HttpRequestMessage(HttpMethod.Get, supabaseUrl);
+        var supabaseUrl = _configuration["Supabase:Url"] ?? "https://zbygkwrbjeyufepqvpsz.supabase.co";
+        var supabaseAnonKey = _configuration["Supabase:AnonKey"] ?? "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InpieWdrd3JiamV5dWZlcHF2cHN6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTA4Mzg2ODksImV4cCI6MjEwNjQxNDY4OX0.Qs2ZqqE-RF8MsEh-sTD6GiR5pQPruIMqiJe_60nQz7s";
+        var userEndpoint = $"{supabaseUrl.TrimEnd('/')}/auth/v1/user";
+        using var httpRequest = new HttpRequestMessage(HttpMethod.Get, userEndpoint);
         httpRequest.Headers.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", request.AccessToken);
         httpRequest.Headers.Add("apikey", supabaseAnonKey);
 
@@ -133,6 +124,26 @@ public partial class AuthService : IAuthService
             throw new DomainException("Không tìm thấy email trong tài khoản Supabase.");
         }
 
+        // Kiểm tra tài khoản Supabase đã xác nhận email (tránh giả mạo email để chiếm đoạt tài khoản)
+        var isEmailConfirmed = false;
+        if (root.TryGetProperty("email_confirmed_at", out var confirmedProp) && confirmedProp.ValueKind == System.Text.Json.JsonValueKind.String)
+        {
+            isEmailConfirmed = !string.IsNullOrWhiteSpace(confirmedProp.GetString());
+        }
+        else if (root.TryGetProperty("confirmed_at", out var confProp) && confProp.ValueKind == System.Text.Json.JsonValueKind.String)
+        {
+            isEmailConfirmed = !string.IsNullOrWhiteSpace(confProp.GetString());
+        }
+        else if (root.TryGetProperty("app_metadata", out var appMeta) && appMeta.TryGetProperty("provider", out var prov) && prov.GetString() == "google")
+        {
+            isEmailConfirmed = true;
+        }
+
+        if (!isEmailConfirmed)
+        {
+            throw new DomainException("Tài khoản Supabase chưa được xác nhận email.");
+        }
+
         var id = root.TryGetProperty("id", out var idProp) ? idProp.GetString() : null;
         string? displayName = null;
         string? avatarUrl = null;
@@ -151,27 +162,13 @@ public partial class AuthService : IAuthService
 
         if (user is null)
         {
-            user = new User
-            {
-                Email = normalizedEmail,
-                DisplayName = string.IsNullOrWhiteSpace(displayName) ? normalizedEmail.Split('@')[0] : displayName.Trim(),
-                AvatarUrl = avatarUrl,
-                Provider = UserProvider.Google,
-                ProviderId = id,
-                PasswordHash = null,
-                CreatedAt = DateTime.UtcNow,
-                Settings = new UserSettings
-                {
-                    FocusDuration = 25,
-                    ShortBreakDuration = 5,
-                    LongBreakDuration = 15,
-                    AutoStartBreaks = false,
-                    ThemeMode = "light"
-                },
-                Streak = new DailyStreak { CurrentStreak = 0, LongestStreak = 0 }
-            };
-            user.Settings.UserId = user.Id;
-            user.Streak.UserId = user.Id;
+            var resolvedName = string.IsNullOrWhiteSpace(displayName) ? normalizedEmail.Split('@')[0] : displayName.Trim();
+            user = CreateNewUser(
+                email: normalizedEmail,
+                displayName: resolvedName,
+                provider: UserProvider.Google,
+                providerId: id,
+                avatarUrl: avatarUrl);
 
             await _userRepository.AddAsync(user);
         }
@@ -193,13 +190,6 @@ public partial class AuthService : IAuthService
             throw new DomainException($"Tài khoản của bạn đã bị tạm khóa. Lý do: {reason}");
         }
 
-        var accessToken = _jwtTokenGenerator.GenerateAccessToken(user);
-        var refreshTokenString = _jwtTokenGenerator.GenerateRefreshToken();
-
-        var refreshToken = BuildRefreshToken(user.Id, refreshTokenString);
-        await _userRepository.AddRefreshTokenAsync(refreshToken);
-        await _userRepository.SaveChangesAsync();
-
-        return new AuthResponse(user.ToDto(), accessToken, refreshTokenString, _jwtOptions.AccessTokenExpirationMinutes * 60);
+        return await IssueAuthResponseAsync(user);
     }
 }

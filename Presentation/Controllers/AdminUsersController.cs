@@ -1,12 +1,10 @@
 using System.Security.Claims;
-using be_pomo_do.Application.Common;
 using be_pomo_do.Application.DTOs.Admin;
-using be_pomo_do.Core.Entities;
-using be_pomo_do.Infrastructure.Data;
+using be_pomo_do.Application.Services;
+using be_pomo_do.Core.Exceptions;
 using be_pomo_do.Presentation.DTOs;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
 
 namespace be_pomo_do.Presentation.Controllers;
 
@@ -15,12 +13,12 @@ namespace be_pomo_do.Presentation.Controllers;
 [Authorize(Roles = "Admin")]
 public class AdminUsersController : ControllerBase
 {
-    private readonly AppDbContext _context;
+    private readonly IAdminService _adminService;
 
-    // Khởi tạo AdminUsersController với DbContext
-    public AdminUsersController(AppDbContext context)
+    // Khởi tạo AdminUsersController thông qua IAdminService (tuân thủ Clean Architecture)
+    public AdminUsersController(IAdminService adminService)
     {
-        _context = context ?? throw new ArgumentNullException(nameof(context));
+        _adminService = adminService ?? throw new ArgumentNullException(nameof(adminService));
     }
 
     // Lấy danh sách người dùng phân trang kèm bộ lọc tìm kiếm và trạng thái
@@ -31,40 +29,7 @@ public class AdminUsersController : ControllerBase
         [FromQuery] int page = 1,
         [FromQuery] int pageSize = 15)
     {
-        var query = _context.Users.AsNoTracking().Where(u => !u.IsAdmin);
-
-        if (!string.IsNullOrWhiteSpace(search))
-        {
-            var clean = search.Trim().ToLower();
-            query = query.Where(u => u.Email.ToLower().Contains(clean) || u.DisplayName.ToLower().Contains(clean));
-        }
-
-        if (isSuspended.HasValue)
-        {
-            query = query.Where(u => u.IsSuspended == isSuspended.Value);
-        }
-
-        var totalCount = await query.CountAsync();
-
-        var users = await query
-            .OrderByDescending(u => u.CreatedAt)
-            .Skip((page - 1) * pageSize)
-            .Take(pageSize)
-            .Select(u => new AdminUserSummaryDto(
-                u.Id,
-                u.Email,
-                u.DisplayName,
-                u.AvatarUrl,
-                u.CreatedAt,
-                u.IsAdmin,
-                u.IsSuspended,
-                u.SuspendedReason,
-                u.SuspendedAt,
-                u.FocusSessions.OrderByDescending(f => f.StartedAt).Select(f => (DateTime?)f.StartedAt).FirstOrDefault()
-            ))
-            .ToListAsync();
-
-        var result = new PagedResult<AdminUserSummaryDto>(users, totalCount, page, pageSize);
+        var result = await _adminService.GetUsersAsync(search, isSuspended, page, pageSize);
         return Ok(ApiResponse<PagedResult<AdminUserSummaryDto>>.Ok(result, "Lấy danh sách người dùng thành công."));
     }
 
@@ -72,22 +37,7 @@ public class AdminUsersController : ControllerBase
     [HttpGet("{id:guid}")]
     public async Task<ActionResult<ApiResponse<AdminUserSummaryDto>>> GetUserById([FromRoute] Guid id)
     {
-        var user = await _context.Users.AsNoTracking()
-            .Where(u => u.Id == id)
-            .Select(u => new AdminUserSummaryDto(
-                u.Id,
-                u.Email,
-                u.DisplayName,
-                u.AvatarUrl,
-                u.CreatedAt,
-                u.IsAdmin,
-                u.IsSuspended,
-                u.SuspendedReason,
-                u.SuspendedAt,
-                u.FocusSessions.OrderByDescending(f => f.StartedAt).Select(f => (DateTime?)f.StartedAt).FirstOrDefault()
-            ))
-            .FirstOrDefaultAsync();
-
+        var user = await _adminService.GetUserByIdAsync(id);
         if (user is null)
         {
             return NotFound(ApiResponse<AdminUserSummaryDto>.Fail("Không tìm thấy người dùng."));
@@ -103,39 +53,22 @@ public class AdminUsersController : ControllerBase
         [FromBody] UpdateUserStatusRequest request)
     {
         var adminId = GetCurrentAdminId();
-
-        if (adminId == id && request.IsSuspended)
+        try
         {
-            return BadRequest(ApiResponse<string>.Fail("Không thể tự khóa tài khoản quản trị của chính mình."));
+            var msg = await _adminService.UpdateUserStatusAsync(adminId, id, request);
+            return Ok(ApiResponse<string>.Ok(msg, msg));
         }
-
-        var user = await _context.Users.FirstOrDefaultAsync(u => u.Id == id);
-        if (user is null)
+        catch (KeyNotFoundException ex)
         {
-            return NotFound(ApiResponse<string>.Fail("Không tìm thấy người dùng được chỉ định."));
+            return NotFound(ApiResponse<string>.Fail(ex.Message));
         }
-
-        user.IsSuspended = request.IsSuspended;
-        user.SuspendedReason = request.IsSuspended ? request.Reason?.Trim() : null;
-        user.SuspendedAt = request.IsSuspended ? DateTime.UtcNow : null;
-
-        if (request.IsSuspended)
+        catch (DomainException ex)
         {
-            await _context.RefreshTokens
-                .Where(r => r.UserId == id && !r.IsRevoked)
-                .ExecuteUpdateAsync(s => s.SetProperty(r => r.IsRevoked, true));
+            return BadRequest(ApiResponse<string>.Fail(ex.Message));
         }
-
-        await _context.SaveChangesAsync();
-
-        var msg = request.IsSuspended
-            ? $"Đã khóa tài khoản {user.Email} thành công."
-            : $"Đã mở khóa tài khoản {user.Email} thành công.";
-
-        return Ok(ApiResponse<string>.Ok(msg, msg));
     }
 
-    // Trích xuất ID admin hiện tại từ claim hoặc fallback an toàn
+    // Trích xuất ID admin hiện tại từ claim
     private Guid GetCurrentAdminId()
     {
         var idClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value
@@ -145,12 +78,6 @@ public class AdminUsersController : ControllerBase
         if (!string.IsNullOrEmpty(idClaim) && Guid.TryParse(idClaim, out var adminId))
         {
             return adminId;
-        }
-
-        var fallbackAdmin = _context.Users.FirstOrDefault(u => u.IsAdmin);
-        if (fallbackAdmin != null)
-        {
-            return fallbackAdmin.Id;
         }
 
         throw new UnauthorizedAccessException("Không xác định được danh tính Admin từ token.");

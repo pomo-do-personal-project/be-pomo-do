@@ -19,6 +19,7 @@ public partial class AuthService : IAuthService
     private readonly IOtpService _otpService;
     private readonly IEmailService _emailService;
     private readonly JwtOptions _jwtOptions;
+    private readonly Microsoft.Extensions.Configuration.IConfiguration _configuration;
 
     public AuthService(
         IUserRepository userRepository,
@@ -26,7 +27,8 @@ public partial class AuthService : IAuthService
         IJwtTokenGenerator jwtTokenGenerator,
         IOtpService otpService,
         IEmailService emailService,
-        IOptions<JwtOptions> jwtOptions)
+        IOptions<JwtOptions> jwtOptions,
+        Microsoft.Extensions.Configuration.IConfiguration configuration)
     {
         _userRepository = userRepository ?? throw new ArgumentNullException(nameof(userRepository));
         _passwordHasher = passwordHasher ?? throw new ArgumentNullException(nameof(passwordHasher));
@@ -34,6 +36,7 @@ public partial class AuthService : IAuthService
         _otpService = otpService ?? throw new ArgumentNullException(nameof(otpService));
         _emailService = emailService ?? throw new ArgumentNullException(nameof(emailService));
         _jwtOptions = jwtOptions?.Value ?? throw new ArgumentNullException(nameof(jwtOptions));
+        _configuration = configuration ?? throw new ArgumentNullException(nameof(configuration));
     }
 
     // Đăng ký tài khoản mới kèm xác thực mã OTP
@@ -52,25 +55,11 @@ public partial class AuthService : IAuthService
             throw new DomainException("Email này đã được sử dụng. Vui lòng chọn email khác.");
         }
 
-        var user = new User
-        {
-            Email = request.Email.Trim().ToLowerInvariant(),
-            PasswordHash = _passwordHasher.HashPassword(request.Password),
-            DisplayName = request.DisplayName.Trim(),
-            Provider = UserProvider.Local,
-            CreatedAt = DateTime.UtcNow,
-            Settings = new UserSettings
-            {
-                FocusDuration = 25,
-                ShortBreakDuration = 5,
-                LongBreakDuration = 15,
-                AutoStartBreaks = false,
-                ThemeMode = "light"
-            },
-            Streak = new DailyStreak { CurrentStreak = 0, LongestStreak = 0 }
-        };
-        user.Settings.UserId = user.Id;
-        user.Streak.UserId = user.Id;
+        var user = CreateNewUser(
+            email: request.Email,
+            displayName: request.DisplayName,
+            provider: UserProvider.Local,
+            passwordHash: _passwordHasher.HashPassword(request.Password));
 
         await _userRepository.AddAsync(user);
         await _userRepository.SaveChangesAsync();
@@ -93,14 +82,7 @@ public partial class AuthService : IAuthService
             throw new DomainException($"Tài khoản của bạn đã bị tạm khóa. Lý do: {reason}");
         }
 
-        var accessToken = _jwtTokenGenerator.GenerateAccessToken(user);
-        var refreshTokenString = _jwtTokenGenerator.GenerateRefreshToken();
-
-        var refreshToken = BuildRefreshToken(user.Id, refreshTokenString);
-        await _userRepository.AddRefreshTokenAsync(refreshToken);
-        await _userRepository.SaveChangesAsync();
-
-        return new AuthResponse(user.ToDto(), accessToken, refreshTokenString, _jwtOptions.AccessTokenExpirationMinutes * 60);
+        return await IssueAuthResponseAsync(user);
     }
 
     // Làm mới access token bằng refresh token (Token Rotation)
@@ -112,12 +94,31 @@ public partial class AuthService : IAuthService
         }
 
         var existingToken = await _userRepository.GetRefreshTokenWithUserAsync(refreshTokenString);
-        if (existingToken is null || existingToken.IsRevoked || existingToken.IsExpired)
+        if (existingToken is null)
         {
-            throw new DomainException("Phiên đăng nhập không hợp lệ hoặc đã hết hạn. Vui lòng đăng nhập lại.");
+            throw new DomainException("Phiên đăng nhập không hợp lệ hoặc không tồn tại. Vui lòng đăng nhập lại.");
         }
 
         var user = existingToken.User ?? throw new DomainException("Tài khoản người dùng không tồn tại.");
+
+        // PHÁT HIỆN TÁI SỬ DỤNG TOKEN (REUSE DETECTION - OWASP Standard):
+        // Nếu token gửi lên đã bị thu hồi (IsRevoked = true), đây là dấu hiệu token bị rò rỉ và kẻ gian cố gắng tái sử dụng.
+        // Ngay lập tức thu hồi toàn bộ chuỗi refresh token của user để bảo vệ tài khoản.
+        if (existingToken.IsRevoked)
+        {
+            foreach (var rt in user.RefreshTokens.Where(t => !t.IsRevoked))
+            {
+                rt.IsRevoked = true;
+            }
+            await _userRepository.SaveChangesAsync();
+
+            throw new DomainException("Phát hiện bất thường trong phiên đăng nhập (Token reuse). Để bảo vệ tài khoản, tất cả phiên làm việc đã bị thu hồi. Vui lòng đăng nhập lại.");
+        }
+
+        if (existingToken.IsExpired)
+        {
+            throw new DomainException("Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại.");
+        }
 
         if (user.IsSuspended)
         {
@@ -127,7 +128,26 @@ public partial class AuthService : IAuthService
 
         var newRefreshTokenString = _jwtTokenGenerator.GenerateRefreshToken();
         existingToken.IsRevoked = true;
-        existingToken.ReplacedByToken = newRefreshTokenString;
+        existingToken.ReplacedByToken = HashToken(newRefreshTokenString);
+
+        // Dọn dẹp token hết hạn hoặc đã thu hồi quá 7 ngày
+        var staleTokens = user.RefreshTokens
+            .Where(t => t.IsExpired || (t.IsRevoked && t.CreatedAt < DateTime.UtcNow.AddDays(-7)))
+            .ToList();
+        foreach (var stale in staleTokens)
+        {
+            _userRepository.RemoveRefreshToken(stale);
+        }
+
+        // Giới hạn tối đa 5 phiên làm việc đồng thời
+        var activeTokens = user.RefreshTokens.Where(t => !t.IsRevoked && !t.IsExpired).OrderBy(t => t.CreatedAt).ToList();
+        if (activeTokens.Count >= 5)
+        {
+            foreach (var oldToken in activeTokens.Take(activeTokens.Count - 4))
+            {
+                oldToken.IsRevoked = true;
+            }
+        }
 
         var newRefreshToken = BuildRefreshToken(user.Id, newRefreshTokenString);
         await _userRepository.AddRefreshTokenAsync(newRefreshToken);
@@ -167,7 +187,8 @@ public partial class AuthService : IAuthService
 
         if (await _userRepository.ExistsByEmailAsync(email))
         {
-            throw new DomainException("Email này đã được sử dụng. Vui lòng đăng nhập hoặc chọn Quên mật khẩu.");
+            // Chống user enumeration: không tiết lộ email đã tồn tại hay chưa
+            return;
         }
 
         var cooldown = await _otpService.GetRemainingCooldownSecondsAsync(email, request.Purpose);
@@ -186,8 +207,12 @@ public partial class AuthService : IAuthService
         ArgumentNullException.ThrowIfNull(request);
         var email = request.Email.Trim().ToLowerInvariant();
 
-        var user = await _userRepository.GetByEmailAsync(email)
-            ?? throw new DomainException("Không tìm thấy tài khoản tương ứng với email này.");
+        var user = await _userRepository.GetByEmailAsync(email);
+        if (user == null)
+        {
+            // Chống user enumeration: không tiết lộ tài khoản có tồn tại hay không
+            return;
+        }
 
         var cooldown = await _otpService.GetPasswordResetCooldownSecondsAsync(email);
         if (cooldown > 0)
@@ -223,13 +248,66 @@ public partial class AuthService : IAuthService
     }
 
 
-    // Helper tạo entity RefreshToken
+    // Helper tạo entity User mới cùng cài đặt mặc định và streak khởi tạo (DRY)
+    private static User CreateNewUser(
+        string email,
+        string displayName,
+        UserProvider provider,
+        string? passwordHash = null,
+        string? providerId = null,
+        string? avatarUrl = null)
+    {
+        var user = new User
+        {
+            Email = email.Trim().ToLowerInvariant(),
+            DisplayName = displayName.Trim(),
+            PasswordHash = passwordHash,
+            Provider = provider,
+            ProviderId = providerId,
+            AvatarUrl = avatarUrl,
+            CreatedAt = DateTime.UtcNow,
+            Settings = new UserSettings
+            {
+                FocusDuration = 25,
+                ShortBreakDuration = 5,
+                LongBreakDuration = 15,
+                AutoStartBreaks = false,
+                ThemeMode = "light"
+            },
+            Streak = new DailyStreak { CurrentStreak = 0, LongestStreak = 0 }
+        };
+        user.Settings.UserId = user.Id;
+        user.Streak.UserId = user.Id;
+        return user;
+    }
+
+    // Helper phát hành cặp token JWT & RefreshToken đồng thời lưu trữ DB (DRY)
+    private async Task<AuthResponse> IssueAuthResponseAsync(User user)
+    {
+        var accessToken = _jwtTokenGenerator.GenerateAccessToken(user);
+        var refreshTokenString = _jwtTokenGenerator.GenerateRefreshToken();
+
+        var refreshToken = BuildRefreshToken(user.Id, refreshTokenString);
+        await _userRepository.AddRefreshTokenAsync(refreshToken);
+        await _userRepository.SaveChangesAsync();
+
+        return new AuthResponse(user.ToDto(), accessToken, refreshTokenString, _jwtOptions.AccessTokenExpirationMinutes * 60);
+    }
+
+    // Helper tạo entity RefreshToken với token đã được băm SHA-256 an toàn
     private RefreshToken BuildRefreshToken(Guid userId, string token) => new()
     {
         UserId = userId,
-        Token = token,
+        Token = HashToken(token),
         ExpiresAt = DateTime.UtcNow.AddDays(_jwtOptions.RefreshTokenExpirationDays),
         CreatedAt = DateTime.UtcNow,
         IsRevoked = false
     };
+
+    public static string HashToken(string token)
+    {
+        if (string.IsNullOrWhiteSpace(token)) return string.Empty;
+        var bytes = System.Security.Cryptography.SHA256.HashData(System.Text.Encoding.UTF8.GetBytes(token));
+        return Convert.ToHexString(bytes).ToLowerInvariant();
+    }
 }

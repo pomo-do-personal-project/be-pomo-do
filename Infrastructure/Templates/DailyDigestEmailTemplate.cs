@@ -128,9 +128,9 @@ public static class DailyDigestEmailTemplate
 
                   <tr>
                     <td style="padding-top: 20px; border-top: 1px solid #f1f5f9; text-align: center;">
-                      <p style="margin: 0; font-size: 12px; color: #94a3b8;">
+                      <p style="margin: 0; font-size: 12px; color: #94a3b8; line-height: 18px;">
                         Email này được gửi tự động lúc 07:00 sáng từ <strong>Pomo-Do</strong>.<br>
-                        Bạn có thể tắt hoặc điều chỉnh trong mục Cài đặt.
+                        Bạn có thể tắt hoặc <a href="{{appUrl}}/settings" target="_blank" style="color: #64748b; text-decoration: underline;">hủy đăng ký nhận báo cáo tại đây</a> bất cứ lúc nào.
                       </p>
                     </td>
                   </tr>

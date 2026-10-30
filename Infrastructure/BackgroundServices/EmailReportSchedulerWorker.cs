@@ -32,9 +32,7 @@ public class EmailReportSchedulerWorker : BackgroundService
             {
                 try
                 {
-                    var vnTime = TimeZoneInfo.ConvertTimeFromUtc(
-                        DateTime.UtcNow,
-                        TimeZoneInfo.FindSystemTimeZoneById("SE Asia Standard Time"));
+                    var vnTime = be_pomo_do.Application.Common.TimeZoneHelper.GetLocalNow();
 
                     var today = DateOnly.FromDateTime(vnTime);
                     var currentTime = vnTime.ToString("HH:mm");

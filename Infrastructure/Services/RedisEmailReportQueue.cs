@@ -34,6 +34,16 @@ public class RedisEmailReportQueue : IEmailReportQueue
         try
         {
             var db = _redis.GetDatabase();
+
+            // Chống đẩy trùng lặp nhiều lần trong cùng khoảng thời gian (TTL 2 giờ)
+            var dedupKey = $"pomodo:inflight:{reportType.ToLower()}:{userId}:{DateTime.UtcNow:yyyyMMdd}";
+            var acquired = await db.StringSetAsync(dedupKey, "queued", TimeSpan.FromHours(2), When.NotExists);
+            if (!acquired)
+            {
+                _logger.LogDebug("Job {ReportType} cho User {UserId} đã được xếp hàng hôm nay. Bỏ qua để tránh gửi lặp.", reportType, userId);
+                return;
+            }
+
             var entries = new NameValueEntry[]
             {
                 new("UserId", userId.ToString()),

@@ -137,7 +137,7 @@ public class AdminScheduledNotificationWorker : BackgroundService
                         .Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
                         .Distinct().ToList();
 
-                    var htmlBody = $"<div style='font-family:sans-serif;line-height:1.6;'>{item.Content.Replace("\n", "<br/>")}</div>";
+                    var htmlBody = Application.Common.MarkdownEmailFormatter.FormatToSafeHtml(item.Content);
 
                     // Gửi theo từng lô 5 email để bảo vệ Gmail SMTP không bị đánh dấu spam
                     for (int i = 0; i < emails.Count; i += 5)

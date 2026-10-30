@@ -53,11 +53,25 @@ public class UserRepository : IUserRepository
         await _context.RefreshTokens.AddAsync(refreshToken, Ct);
     }
 
+    public void RemoveRefreshToken(RefreshToken refreshToken)
+    {
+        _context.RefreshTokens.Remove(refreshToken);
+    }
+
     public async Task<RefreshToken?> GetRefreshTokenWithUserAsync(string token)
     {
+        var hashed = HashToken(token);
         return await _context.RefreshTokens
             .Include(r => r.User)
-            .FirstOrDefaultAsync(r => r.Token == token, Ct);
+                .ThenInclude(u => u!.RefreshTokens)
+            .FirstOrDefaultAsync(r => r.Token == hashed || r.Token == token, Ct);
+    }
+
+    public static string HashToken(string token)
+    {
+        if (string.IsNullOrWhiteSpace(token)) return string.Empty;
+        var bytes = System.Security.Cryptography.SHA256.HashData(System.Text.Encoding.UTF8.GetBytes(token));
+        return Convert.ToHexString(bytes).ToLowerInvariant();
     }
 
     public async Task SaveChangesAsync()

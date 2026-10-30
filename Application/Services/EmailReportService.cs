@@ -17,6 +17,7 @@ public class EmailReportService : IEmailReportService
     private readonly IEmailService _emailService;
     private readonly IEmailReportQueue _reportQueue;
     private readonly ILogger<EmailReportService> _logger;
+    private readonly string _frontendUrl;
 
     // Khởi tạo EmailReportService với đầy đủ dependencies qua Traditional Constructor
     public EmailReportService(
@@ -26,7 +27,8 @@ public class EmailReportService : IEmailReportService
         ITaskRepository taskRepository,
         IEmailService emailService,
         IEmailReportQueue reportQueue,
-        ILogger<EmailReportService> logger)
+        ILogger<EmailReportService> logger,
+        Microsoft.Extensions.Configuration.IConfiguration configuration)
     {
         _settingsRepository = settingsRepository ?? throw new ArgumentNullException(nameof(settingsRepository));
         _userRepository = userRepository ?? throw new ArgumentNullException(nameof(userRepository));
@@ -35,6 +37,7 @@ public class EmailReportService : IEmailReportService
         _emailService = emailService ?? throw new ArgumentNullException(nameof(emailService));
         _reportQueue = reportQueue ?? throw new ArgumentNullException(nameof(reportQueue));
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
+        _frontendUrl = configuration?["SmtpSettings:FrontendUrl"] ?? "https://localhost:3000";
     }
 
     // Gửi báo cáo năng suất tuần cho người dùng
@@ -69,7 +72,7 @@ public class EmailReportService : IEmailReportService
 
         var dateRangeText = $"{fromUtc:dd/MM} - {nowUtc:dd/MM/yyyy}";
         var displayName = user?.DisplayName ?? "bạn";
-        var appUrl = "http://localhost:3000";
+        var appUrl = _frontendUrl;
 
         var html = ReportEmailTemplates.BuildWeeklyReportHtml(
             displayName,
@@ -85,7 +88,7 @@ public class EmailReportService : IEmailReportService
 
         if (settings != null)
         {
-            var vnTime = TimeZoneInfo.ConvertTimeFromUtc(DateTime.UtcNow, TimeZoneInfo.FindSystemTimeZoneById("SE Asia Standard Time"));
+            var vnTime = be_pomo_do.Application.Common.TimeZoneHelper.GetLocalNow();
             var diff = (7 + (vnTime.DayOfWeek - DayOfWeek.Monday)) % 7;
             settings.LastWeeklyReportSentDate = DateOnly.FromDateTime(vnTime.AddDays(-diff));
             await _settingsRepository.SaveChangesAsync();
@@ -114,10 +117,10 @@ public class EmailReportService : IEmailReportService
         var others = activeTasks.Where(t => t.Priority == Priority.NotImportantUrgent || t.Priority == Priority.NotImportantNotUrgent).Select(t => t.Title).ToList();
 
         var streak = await _pomodoroRepository.GetDailyStreakByUserIdAsync(userId);
-        var vnTime = TimeZoneInfo.ConvertTimeFromUtc(DateTime.UtcNow, TimeZoneInfo.FindSystemTimeZoneById("SE Asia Standard Time"));
+        var vnTime = be_pomo_do.Application.Common.TimeZoneHelper.GetLocalNow();
         var dateText = vnTime.ToString("dd/MM/yyyy");
         var displayName = user?.DisplayName ?? "bạn";
-        var appUrl = "http://localhost:3000";
+        var appUrl = _frontendUrl;
 
         var html = ReportEmailTemplates.BuildDailyDigestHtml(
             displayName,
@@ -140,7 +143,7 @@ public class EmailReportService : IEmailReportService
     // Quét và đẩy các job Daily Digest cần gửi vào Redis Streams
     public async Task EnqueueScheduledDailyDigestsAsync(string currentTime, CancellationToken ct = default)
     {
-        var vnTime = TimeZoneInfo.ConvertTimeFromUtc(DateTime.UtcNow, TimeZoneInfo.FindSystemTimeZoneById("SE Asia Standard Time"));
+        var vnTime = be_pomo_do.Application.Common.TimeZoneHelper.GetLocalNow();
         var today = DateOnly.FromDateTime(vnTime);
 
         var targetUsers = await _settingsRepository.GetUsersForDailyDigestAsync(today, currentTime, ct);
@@ -150,16 +153,14 @@ public class EmailReportService : IEmailReportService
             foreach (var s in targetUsers)
             {
                 await _reportQueue.EnqueueReportAsync(s.UserId, "Daily", null, ct);
-                s.LastDailyDigestSentDate = today;
             }
-            await _settingsRepository.SaveChangesAsync();
         }
     }
 
     // Quét và đẩy các job Weekly Report cần gửi vào Redis Streams
     public async Task EnqueueScheduledWeeklyReportsAsync(string currentTime, CancellationToken ct = default)
     {
-        var vnTime = TimeZoneInfo.ConvertTimeFromUtc(DateTime.UtcNow, TimeZoneInfo.FindSystemTimeZoneById("SE Asia Standard Time"));
+        var vnTime = be_pomo_do.Application.Common.TimeZoneHelper.GetLocalNow();
         var diff = (7 + (vnTime.DayOfWeek - DayOfWeek.Monday)) % 7;
         var monday = DateOnly.FromDateTime(vnTime.AddDays(-diff));
 
@@ -170,9 +171,7 @@ public class EmailReportService : IEmailReportService
             foreach (var s in targetUsers)
             {
                 await _reportQueue.EnqueueReportAsync(s.UserId, "Weekly", null, ct);
-                s.LastWeeklyReportSentDate = monday;
             }
-            await _settingsRepository.SaveChangesAsync();
         }
     }
 }

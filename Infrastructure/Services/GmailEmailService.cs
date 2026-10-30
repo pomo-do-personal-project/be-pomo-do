@@ -27,14 +27,21 @@ public class GmailEmailService : IEmailService
         ArgumentException.ThrowIfNullOrWhiteSpace(toEmail);
         ArgumentException.ThrowIfNullOrWhiteSpace(otpCode);
 
-        _logger.LogInformation(
-            "\n==================================================\n" +
-            "📢 [POMO-DO REGISTER OTP DISPATCH]\n" +
-            "To: {ToEmail}\n" +
-            "OTP Code: >>> {OtpCode} <<<\n" +
-            "Expires: 5 minutes\n" +
-            "==================================================",
-            toEmail, otpCode);
+        if (string.Equals(Environment.GetEnvironmentVariable("ASPNETCORE_ENVIRONMENT"), "Development", StringComparison.OrdinalIgnoreCase))
+        {
+            _logger.LogInformation(
+                "\n==================================================\n" +
+                "📢 [DEV ONLY] [POMO-DO REGISTER OTP DISPATCH]\n" +
+                "To: {ToEmail}\n" +
+                "OTP Code: >>> {OtpCode} <<<\n" +
+                "Expires: 5 minutes\n" +
+                "==================================================",
+                toEmail, otpCode);
+        }
+        else
+        {
+            _logger.LogInformation("📢 [POMO-DO REGISTER OTP DISPATCH] Dispatching registration OTP email to {ToEmail}", toEmail);
+        }
 
         const string subject = "[Pomo-Do] Mã xác thực đăng ký tài khoản";
         const string actionText = "hoàn tất đăng ký tài khoản mới trên Pomo-Do";
@@ -53,7 +60,7 @@ public class GmailEmailService : IEmailService
         };
         message.Body = bodyBuilder.ToMessageBody();
 
-        await SendViaSmtpAsync(message, toEmail, $"OTP: {otpCode}", ct);
+        await SendViaSmtpAsync(message, toEmail, "Register OTP", ct);
     }
 
     // Gửi email chứa nút bấm xác nhận đặt lại mật khẩu
@@ -65,15 +72,22 @@ public class GmailEmailService : IEmailService
         var frontendBase = string.IsNullOrWhiteSpace(_options.FrontendUrl) ? "https://localhost:3000" : _options.FrontendUrl.TrimEnd('/');
         var resetLink = $"{frontendBase}/reset-password?email={Uri.EscapeDataString(toEmail)}&token={resetToken}";
 
-        _logger.LogInformation(
-            "\n==================================================\n" +
-            "📢 [POMO-DO PASSWORD RESET ACTION BUTTON]\n" +
-            "To: {ToEmail}\n" +
-            "Reset Link: >>> {ResetLink} <<<\n" +
-            "Token: >>> {ResetToken} <<<\n" +
-            "Expires: 15 minutes\n" +
-            "==================================================",
-            toEmail, resetLink, resetToken);
+        if (string.Equals(Environment.GetEnvironmentVariable("ASPNETCORE_ENVIRONMENT"), "Development", StringComparison.OrdinalIgnoreCase))
+        {
+            _logger.LogInformation(
+                "\n==================================================\n" +
+                "📢 [DEV ONLY] [POMO-DO PASSWORD RESET ACTION BUTTON]\n" +
+                "To: {ToEmail}\n" +
+                "Reset Link: >>> {ResetLink} <<<\n" +
+                "Token: >>> {ResetToken} <<<\n" +
+                "Expires: 15 minutes\n" +
+                "==================================================",
+                toEmail, resetLink, resetToken);
+        }
+        else
+        {
+            _logger.LogInformation("📢 [POMO-DO PASSWORD RESET] Dispatching password reset email to {ToEmail}", toEmail);
+        }
 
         var message = new MimeMessage();
         message.From.Add(new MailboxAddress(_options.SenderName, _options.SenderEmail));
@@ -122,32 +136,56 @@ public class GmailEmailService : IEmailService
         await SendViaSmtpAsync(message, toEmail, subject, ct);
     }
 
-    // Gửi message qua SmtpClient kết nối Gmail
+    // Gửi message qua SmtpClient kết nối Gmail với cơ chế retry và báo lỗi rõ ràng
     private async Task SendViaSmtpAsync(MimeMessage message, string toEmail, string context, CancellationToken ct)
     {
-        try
+        var isDev = string.Equals(Environment.GetEnvironmentVariable("ASPNETCORE_ENVIRONMENT"), "Development", StringComparison.OrdinalIgnoreCase);
+
+        if (string.IsNullOrWhiteSpace(_options.Username) || string.IsNullOrWhiteSpace(_options.Password))
         {
-            if (string.IsNullOrWhiteSpace(_options.Username) || string.IsNullOrWhiteSpace(_options.Password))
+            if (isDev)
             {
-                _logger.LogWarning("SMTP credentials not fully configured. Email was logged to console only.");
+                _logger.LogWarning("SMTP credentials not configured. [DEV ONLY] Email was logged to console only.");
                 return;
             }
 
-            using var client = new SmtpClient();
-            var secureSocketOption = _options.EnableSsl
-                ? SecureSocketOptions.StartTls
-                : SecureSocketOptions.Auto;
-
-            await client.ConnectAsync(_options.Server, _options.Port, secureSocketOption, ct);
-            await client.AuthenticateAsync(_options.Username, _options.Password, ct);
-            await client.SendAsync(message, ct);
-            await client.DisconnectAsync(true, ct);
-
-            _logger.LogInformation("Email ({Context}) successfully sent to {ToEmail} via Gmail SMTP.", context, toEmail);
+            throw new InvalidOperationException("Cấu hình tài khoản SMTP chưa được thiết lập trên môi trường Production.");
         }
-        catch (Exception ex)
+
+        Exception? lastException = null;
+        const int maxRetries = 3;
+
+        for (int attempt = 1; attempt <= maxRetries; attempt++)
         {
-            _logger.LogError(ex, "Failed to send email ({Context}) to {ToEmail} via SMTP.", context, toEmail);
+            try
+            {
+                using var client = new SmtpClient();
+                var secureSocketOption = _options.EnableSsl
+                    ? SecureSocketOptions.StartTls
+                    : SecureSocketOptions.Auto;
+
+                await client.ConnectAsync(_options.Server, _options.Port, secureSocketOption, ct);
+                await client.AuthenticateAsync(_options.Username, _options.Password, ct);
+                await client.SendAsync(message, ct);
+                await client.DisconnectAsync(true, ct);
+
+                _logger.LogInformation("Email ({Context}) successfully sent to {ToEmail} via Gmail SMTP (Attempt {Attempt}).", context, toEmail, attempt);
+                return;
+            }
+            catch (Exception ex) when (attempt < maxRetries && !ct.IsCancellationRequested)
+            {
+                lastException = ex;
+                _logger.LogWarning(ex, "Lỗi gửi email ({Context}) lần {Attempt} tới {ToEmail}. Thử lại sau {Delay}ms...", context, attempt, toEmail, attempt * 500);
+                await Task.Delay(attempt * 500, ct);
+            }
+            catch (Exception ex)
+            {
+                lastException = ex;
+                break;
+            }
         }
+
+        _logger.LogError(lastException, "Failed to send email ({Context}) to {ToEmail} via SMTP after {MaxRetries} attempts.", context, toEmail, maxRetries);
+        throw new InvalidOperationException($"Không thể gửi email tới {toEmail} qua SMTP: {lastException?.Message}", lastException);
     }
 }

@@ -35,7 +35,10 @@ public class TagService : ITagService
 
     public async Task<TagDto> CreateTagAsync(Guid userId, CreateTagRequest request)
     {
-        var cleanName = request.Name.Trim();
+        var cleanName = request.Name?.Trim() ?? string.Empty;
+        if (cleanName.Length > 50) throw new DomainException("Tên thẻ tag không được vượt quá 50 ký tự.");
+        if (!string.IsNullOrWhiteSpace(request.ColorHex) && !System.Text.RegularExpressions.Regex.IsMatch(request.ColorHex.Trim(), "^#[0-9A-Fa-f]{6}$"))
+            throw new DomainException("Mã màu thẻ tag không hợp lệ (định dạng chuẩn #RRGGBB).");
         if (string.IsNullOrWhiteSpace(cleanName))
         {
             throw new DomainException("Tên thẻ tag không được để trống.");
@@ -70,7 +73,10 @@ public class TagService : ITagService
             throw new DomainException("Thẻ tag không tồn tại hoặc bạn không có quyền chỉnh sửa.");
         }
 
-        var cleanName = request.Name.Trim();
+        var cleanName = request.Name?.Trim() ?? string.Empty;
+        if (cleanName.Length > 50) throw new DomainException("Tên thẻ tag không được vượt quá 50 ký tự.");
+        if (!string.IsNullOrWhiteSpace(request.ColorHex) && !System.Text.RegularExpressions.Regex.IsMatch(request.ColorHex.Trim(), "^#[0-9A-Fa-f]{6}$"))
+            throw new DomainException("Mã màu thẻ tag không hợp lệ (định dạng chuẩn #RRGGBB).");
         if (string.IsNullOrWhiteSpace(cleanName))
         {
             throw new DomainException("Tên thẻ tag không được để trống.");

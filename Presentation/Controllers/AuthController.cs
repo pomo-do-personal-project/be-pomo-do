@@ -26,7 +26,7 @@ public class AuthController : ControllerBase
     public async Task<ActionResult<ApiResponse<string>>> SendOtp([FromBody] SendOtpRequest request)
     {
         await _authService.SendOtpAsync(request);
-        return Ok(ApiResponse<string>.Ok("Mã OTP đã được gửi về email của bạn. Mã có hiệu lực trong 5 phút."));
+        return Ok(ApiResponse<string>.Ok("Mã OTP đã được gửi về email của bạn nếu thông tin hợp lệ. Mã có hiệu lực trong 5 phút."));
     }
 
     // Registers a new user account with verified OTP code (requires explicit login for tokens).
@@ -43,7 +43,7 @@ public class AuthController : ControllerBase
     public async Task<ActionResult<ApiResponse<string>>> ForgotPassword([FromBody] ForgotPasswordRequest request)
     {
         await _authService.ForgotPasswordAsync(request);
-        return Ok(ApiResponse<string>.Ok("Liên kết xác nhận đặt lại mật khẩu đã được gửi về email của bạn. Vui lòng kiểm tra hộp thư."));
+        return Ok(ApiResponse<string>.Ok("Nếu email tồn tại trong hệ thống, liên kết xác nhận đặt lại mật khẩu đã được gửi về email của bạn. Vui lòng kiểm tra hộp thư."));
     }
 
     // Verifies the token from confirmation email link and updates the user account password.
